@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redrock Study</title>
+
+<!-- The shared CaseMentor look, used unchanged by every simulation.
+     It must load first; css/app.css only adds what is Redrock's own. -->
+<link rel="stylesheet" href="css/shared-styles.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- Everything the candidate sees is drawn into this one element by
+     js/app.js. There is no second page anywhere in the product. -->
+<div id="app"></div>
+
+<!-- Below the minimum supported window size the simulation stops rather than
+     drawing a broken layout. It restores itself when the window grows. -->
+<div id="too-small" class="too-small" hidden>
+  <div>
+    <p style="font-weight:600;margin:0 0 8px">This window is too small</p>
+    <p style="margin:0">Please make the browser window larger, or use full screen, to continue.</p>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="js/marking.js"></script>
+<script src="js/content.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

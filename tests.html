@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redrock — engine tests</title>
+<link rel="stylesheet" href="css/shared-styles.css">
+<style>
+  /* This page is a report, not part of the simulation, so it is allowed to
+     scroll and it is light throughout. */
+  body { overflow: auto; background: var(--surface); color: var(--on-light); }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px clamp(14px, 3vw, 40px) 80px; }
+  h1 { font-size: clamp(21px, 2vw, 29px); margin-bottom: 4px; }
+  .lede { color: var(--on-light-muted); margin: 0 0 var(--space-5); font-size: max(14px, 0.92em); }
+  .banner {
+    border-radius: var(--radius); padding: 18px 22px; margin-bottom: var(--space-6);
+    font-size: clamp(17px, 1.5vw, 22px); font-weight: 700; color: #fff;
+  }
+  .banner.pass { background: var(--success); }
+  .banner.fail { background: var(--error); }
+  .banner.busy { background: var(--on-light-muted); }
+  .banner .sub { display: block; font-weight: 400; font-size: max(13px, 0.62em); margin-top: 5px; opacity: 0.92; }
+  .group {
+    background: var(--surface-plain); border: 1px solid var(--surface-line);
+    border-radius: var(--radius); margin-bottom: var(--space-4); overflow: hidden;
+  }
+  .group > h2 {
+    font-size: max(16px, 1.05em); padding: 14px 20px; margin: 0;
+    border-bottom: 1px solid var(--surface-line);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .group .count { font-size: max(12px, 0.72em); font-weight: 500; color: var(--on-light-muted); }
+  .group.is-fail > h2 { background: #fef2f6; }
+  .group.is-pass > h2 { background: #f2fbf5; }
+  .row { display: flex; gap: 12px; padding: 8px 20px; border-bottom: 1px solid #eef1f6; align-items: flex-start; }
+  .row:last-child { border-bottom: none; }
+  .row .icon { flex: 0 0 auto; font-weight: 700; width: 18px; }
+  .row.ok .icon { color: var(--success); }
+  .row.no .icon { color: var(--error); }
+  .row.no { background: #fef2f6; }
+  .row .what { flex: 1 1 auto; font-size: max(13px, 0.88em); }
+  .row .detail { display: block; color: var(--on-light-muted); font-size: max(12px, 0.82em); margin-top: 2px; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.92em;
+         background: var(--surface-sunken); padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body class="scrolls">
+<div class="wrap">
+  <h1>Redrock — engine tests</h1>
+  <p class="lede">
+    These checks run the rules engine (<code>js/marking.js</code>) against the content in
+    <code>data/rr6</code>. Every group counts how many things it actually looked at, and a group
+    that looked at nothing fails — a check that measures nothing is not a pass.
+    Open this page from a web address (or a local server), not by double-clicking the file,
+    or the browser will refuse to read the content files.
+  </p>
+
+  <div id="banner" class="banner busy">Running…</div>
+  <div id="groups"></div>
+</div>
+
+<script src="js/marking.js"></script>
+<script src="js/content.js"></script>
+<script>
+'use strict';
+
+/* ------------------------------------------------------------------ *
+ * A very small test harness.
+ *
+ * Each group must declare `minimum`: the least number of checks it is
+ * expected to make. If it makes fewer — because the data it was going to
+ * walk turned out to be empty — the group fails. This is the Sea Wolf
+ * lesson: "0 problems over 0 items" reported a pass and shipped a fault.
+ * ------------------------------------------------------------------ */
+
+var groups = [];
+var current = null;
+
+function group(name, minimum) {
+  current = { name: name, minimum: minimum, rows: [], failures: 0 };
+  groups.push(current);
+}
+function check(description, condition, detail) {
+  current.rows.push({ ok: !!condition, what: description, detail: detail || '' });
+  if (!condition) current.failures++;
+}
+function checkEqual(description, actual, expected) {
+  var same = JSON.stringify(actual) === JSON.stringify(expected);
+  check(description, same, same ? '' : 'expected ' + JSON.stringify(expected) +
+                                   ', got ' + JSON.stringify(actual));
+}
+function includesMessage(errors, fragment) {
+  for (var i = 0; i < errors.length; i++) {
+    if (errors[i].indexOf(fragment) !== -1) return true;
+  }
+  return false;
+}
+function deepCopy(x) { return JSON.parse(JSON.stringify(x)); }
+
+function render() {
+  var host = document.getElementById('groups');
+  var banner = document.getElementById('banner');
+  var totalChecks = 0, failedGroups = [];
+  host.innerHTML = '';
+
+  groups.forEach(function (g) {
+    var tooFew = g.rows.length < g.minimum;
+    if (tooFew) {
+      g.rows.push({
+        ok: false,
+        what: 'This group made ' + g.rows.length + ' checks but should make at least ' +
+              g.minimum + '.',
+        detail: 'A group that measures nothing must fail, not pass.'
+      });
+      g.failures++;
+    }
+    totalChecks += g.rows.length;
+    if (g.failures) failedGroups.push(g.name);
+
+    var box = document.createElement('section');
+    box.className = 'group ' + (g.failures ? 'is-fail' : 'is-pass');
+    var head = document.createElement('h2');
+    head.innerHTML = '<span>' + (g.failures ? '✗ ' : '✓ ') + g.name + '</span>' +
+      '<span class="count">' + (g.rows.length - g.failures + (g.failures ? 0 : 0)) +
+      ' of ' + g.rows.length + ' checks passed · minimum ' + g.minimum + '</span>';
+    box.appendChild(head);
+    g.rows.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'row ' + (r.ok ? 'ok' : 'no');
+      row.innerHTML = '<span class="icon">' + (r.ok ? '✓' : '✗') + '</span>' +
+        '<span class="what"></span>';
+      row.querySelector('.what').textContent = r.what;
+      if (r.detail) {
+        var d = document.createElement('span');
+        d.className = 'detail';
+        d.textContent = r.detail;
+        row.querySelector('.what').appendChild(d);
+      }
+      box.appendChild(row);
+    });
+    host.appendChild(box);
+  });
+
+  if (failedGroups.length) {
+    banner.className = 'banner fail';
+    banner.innerHTML = 'FAILED: ' + failedGroups.join(', ') +
+      '<span class="sub">' + totalChecks + ' checks run across ' + groups.length + ' groups.</span>';
+  } else {
+    banner.className = 'banner pass';
+    banner.innerHTML = 'ALL TEST GROUPS PASSED' +
+      '<span class="sub">' + totalChecks + ' checks run across ' + groups.length + ' groups.</span>';
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * The answer key, built from the content itself.
+ * Every answer in data/rr6 was checked against 20260908_RR6_Answer Key.docx
+ * when the content was extracted, so reproducing the content's own answers
+ * is reproducing the key.
+ * ------------------------------------------------------------------ */
+function keyAnswers(content) {
+  var A = { investigation: { journal: [] }, analysis: {},
+            report: { written: {}, grid: {} }, cases: {} };
+  var items = content.investigation.items;
+  Object.keys(items).forEach(function (id) { if (items[id].required) A.investigation.journal.push(id); });
+  content.analysis.questions.forEach(function (q) {
+    q.boxes.forEach(function (b) { A.analysis[b.id] = { value: String(b.answer), secondsLeft: 900 }; });
+  });
+  var rep = content.report;
+  Object.keys(rep.written.blanks).forEach(function (id) {
+    A.report.written[id] = { value: String(rep.written.blanks[id].answer), secondsLeft: 800 };
+  });
+  A.report.chart = { value: rep.chart.answer, secondsLeft: 700 };
+  rep.grid.cells.forEach(function (row) {
+    row.forEach(function (cell) {
+      if (cell.id) A.report.grid[cell.id] = { value: String(cell.answer), secondsLeft: 600 };
+    });
+  });
+  content.cases.cases.forEach(function (c) {
+    var entry;
+    if (c.mechanism === 'choose_one') entry = { value: c.answer };
+    else if (c.mechanism === 'choose_many') entry = { values: c.answer.slice() };
+    else if (c.mechanism === 'dropdowns') {
+      entry = { dropdowns: {} };
+      c.dropdowns.forEach(function (d) { entry.dropdowns[d.id] = d.answer; });
+    } else if (c.mechanism === 'number' || c.mechanism === 'numbers') {
+      entry = { boxes: {} };
+      c.boxes.forEach(function (b) { entry.boxes[b.id] = String(b.answer); });
+    } else {
+      entry = { journal: [] };
+      Object.keys(c.items).forEach(function (id) { if (c.items[id].required) entry.journal.push(id); });
+    }
+    entry.secondsLeft = 500;
+    A.cases[c.number] = entry;
+  });
+  return A;
+}
+
+/* ------------------------------------------------------------------ */
+
+function run(content, markingSource) {
+  var M = MARKING;
+
+  /* ---- GROUP 1 — content validation ---------------------------------- */
+  group('1. Content validation', 12);
+
+  var good = M.validateContent(content.version, content.investigation,
+                               content.analysis, content.report, content.cases);
+  check('data/rr6 passes validation with no complaints', good.ok,
+        good.ok ? '' : good.errors.join(' | '));
+  check('validation returned an errors list (empty when the data is sound)',
+        Array.isArray(good.errors) && good.errors.length === 0);
+
+  /* A deliberately broken copy. Each fault is a real mistake WK could make
+     while typing the next version by hand. */
+  var badInv = deepCopy(content.investigation);
+  badInv.sections[0].blocks.push({ kind: 'text', text: 'A stray [[ghost_item]] reference.' });
+  var firstItemId = Object.keys(badInv.items)[0];
+  badInv.sections[0].blocks.push({ kind: 'text', text: 'And [[' + firstItemId + ']] again.' });
+
+  var badRep = deepCopy(content.report);
+  var firstBlank = Object.keys(badRep.written.blanks)[0];
+  badRep.written.blanks[firstBlank].answer = 'perhaps';
+  badRep.chart.answer = 'donut';
+
+  var badCases = deepCopy(content.cases);
+  var numberCase = null;
+  badCases.cases.forEach(function (c) {
+    if ((c.mechanism === 'number' || c.mechanism === 'numbers') && !numberCase) numberCase = c;
+  });
+  if (numberCase) { numberCase.mechanism = 'choose_one'; }   // wrong fields for its mechanism
+  badCases.cases.push({ number: 99, mechanism: 'number', prompt: '', question: '',
+                        explanation: '', boxes: [] });
+
+  var bad = M.validateContent(content.version, badInv, content.analysis, badRep, badCases);
+  check('the broken copy is refused', !bad.ok,
+        bad.ok ? 'validation wrongly accepted it' : bad.errors.length + ' complaints raised');
+  check('it names the unresolved [[ghost_item]]',
+        includesMessage(bad.errors, '[[ghost_item]]'),
+        bad.errors.join(' | ').slice(0, 300));
+  check('it names the item used twice',
+        includesMessage(bad.errors, 'is used 2 times'),
+        bad.errors.join(' | ').slice(0, 300));
+  check('it names the written blank whose answer is not one of its options',
+        includesMessage(bad.errors, 'blank "' + firstBlank + '" has answer "perhaps"'));
+  check('it names the chart answer that is not one of the chart options',
+        includesMessage(bad.errors, 'chart.answer "donut"'));
+  check('it names the case whose mechanism does not match its fields',
+        includesMessage(bad.errors, 'needs at least two "options"'));
+  check('it notices there are now more cases than case_count says',
+        includesMessage(bad.errors, 'case_count'));
+  check('it notices the extra case is out of order',
+        includesMessage(bad.errors, 'out of order'));
+  check('every complaint names a file',
+        bad.errors.every(function (e) { return /\.json:/.test(e); }),
+        bad.errors.filter(function (e) { return !/\.json:/.test(e); }).join(' | '));
+
+  /* A charted exhibit names its items in the chart's own "items" list rather
+     than as [[id]] inside a piece of text. RR6 has no charted exhibit, but
+     RR1 to RR3 do — and an earlier version of the checker did not know about
+     that second form, so it would have refused all three of them with a
+     complaint that their items were "declared but never used". This check
+     exists so that cannot come back. */
+  var charted = deepCopy(content.investigation);
+  var lastSection = charted.sections[charted.sections.length - 1];
+  var chartedIds = [];
+  var chartedText = JSON.stringify(lastSection.blocks);
+  Object.keys(charted.items).forEach(function (id) {
+    if (chartedText.indexOf('[[' + id + ']]') !== -1) chartedIds.push(id);
+  });
+  lastSection.blocks = [{
+    kind: 'bar_chart',
+    categories: chartedIds.map(function (id) { return charted.items[id].label; }),
+    series: [{ name: 'Values', values: chartedIds.map(function (id) { return Number(charted.items[id].text) || 1; }),
+               items: chartedIds }]
+  }];
+  var chartedCheck = M.validateContent(content.version, charted, content.analysis,
+                                       content.report, content.cases);
+  check('an exhibit drawn as a bar chart passes, with its items named in the chart',
+        chartedCheck.ok && chartedIds.length >= 2,
+        chartedIds.length + ' items moved into a chart; ' + chartedCheck.errors.join(' | '));
+
+  var chartedBad = deepCopy(charted);
+  chartedBad.sections[chartedBad.sections.length - 1].blocks[0].series[0].items[0] = 'not_an_item';
+  var chartedBadCheck = M.validateContent(content.version, chartedBad, content.analysis,
+                                          content.report, content.cases);
+  check('but a bar whose item does not exist is still refused',
+        !chartedBadCheck.ok && includesMessage(chartedBadCheck.errors, 'not_an_item'),
+        chartedBadCheck.errors.join(' | ').slice(0, 300));
+
+  /* ---- GROUP 2 — the answer key marks full marks --------------------- */
+  group('2. Answer-key reproduction', 8);
+
+  var key = keyAnswers(content);
+  var marked = M.markGame(content, key);
+  var expectedInv = Object.keys(content.investigation.items)
+        .filter(function (id) { return content.investigation.items[id].required; }).length;
+  var expectedAna = content.analysis.questions
+        .reduce(function (n, q) { return n + q.boxes.length; }, 0);
+  var nonFixed = 0;
+  content.report.grid.cells.forEach(function (r) {
+    r.forEach(function (c) { if (!('fixed' in c)) nonFixed++; });
+  });
+  var expectedRep = Object.keys(content.report.written.blanks).length + 1 + nonFixed;
+
+  checkEqual('Investigation marks ' + expectedInv + ' of ' + expectedInv,
+             [marked.investigation.score, marked.investigation.of], [expectedInv, expectedInv]);
+  checkEqual('Analysis marks ' + expectedAna + ' of ' + expectedAna,
+             [marked.analysis.score, marked.analysis.of], [expectedAna, expectedAna]);
+  checkEqual('Report marks ' + expectedRep + ' of ' + expectedRep,
+             [marked.report.score, marked.report.of], [expectedRep, expectedRep]);
+  checkEqual('Cases mark ' + content.cases.cases.length + ' of ' + content.cases.cases.length,
+             [marked.casesScore, marked.casesOf],
+             [content.cases.cases.length, content.cases.cases.length]);
+  checkEqual('the total is the plain sum of the four',
+             marked.total,
+             { score: expectedInv + expectedAna + expectedRep + content.cases.cases.length,
+               of: expectedInv + expectedAna + expectedRep + content.cases.cases.length });
+  check('for RR6 that total is 56 of 56',
+        marked.total.score === 56 && marked.total.of === 56,
+        marked.total.score + ' / ' + marked.total.of);
+  check('nothing was missed and nothing was collected that was not needed',
+        marked.investigation.missing.length === 0 && marked.investigation.extras.length === 0);
+  check('no answer is flagged as given after time', marked.late === 0, 'late = ' + marked.late);
+  check('every single case is marked right',
+        marked.cases.length === content.cases.cases.length &&
+        marked.cases.every(function (c) { return c.correct; }),
+        marked.cases.filter(function (c) { return !c.correct; })
+                    .map(function (c) { return 'case ' + c.number; }).join(', '));
+
+  /* ---- GROUP 3 — deliberately wrong answers -------------------------- */
+  group('3. Known-wrong answers', 16);
+
+  var wrong = keyAnswers(content);
+  var requiredIds = Object.keys(content.investigation.items)
+        .filter(function (id) { return content.investigation.items[id].required; });
+  var optionalIds = Object.keys(content.investigation.items)
+        .filter(function (id) { return !content.investigation.items[id].required; });
+  var dropped = requiredIds[0];
+  wrong.investigation.journal = requiredIds.slice(1)
+        .concat([optionalIds[0], optionalIds[1]]);
+  var wrongMarked = M.markGame(content, wrong);
+  checkEqual('one required item missing scores ' + (expectedInv - 1) + ' of ' + expectedInv,
+             [wrongMarked.investigation.score, wrongMarked.investigation.of],
+             [expectedInv - 1, expectedInv]);
+  checkEqual('the missing item is named', wrongMarked.investigation.missing, [dropped]);
+  checkEqual('the two extras are listed, in the order they were collected',
+             wrongMarked.investigation.extras, [optionalIds[0], optionalIds[1]]);
+  check('extras carry no penalty (the score is out of the required count only)',
+        wrongMarked.investigation.of === expectedInv);
+
+  var q1 = content.analysis.questions[0].boxes[0];      // Mistveil, key 0.4 at 1 decimal
+  check('Question 1 Mistveil: 0.35 rounds to 0.4 and is right',
+        M.markNumber('0.35', q1).correct);
+  check('Question 1 Mistveil: 0.449 rounds to 0.4 and is right',
+        M.markNumber('0.449', q1).correct);
+  check('Question 1 Mistveil: 0.45 rounds to 0.5 and is wrong',
+        !M.markNumber('0.45', q1).correct);
+  check('Question 1 Mistveil: 0.34 rounds to 0.3 and is wrong',
+        !M.markNumber('0.34', q1).correct);
+
+  var blankC = content.report.written.blanks.c;         // 281, also accepts 270
+  check('Report blank c: 281 is right', M.markNumber('281', blankC).correct);
+  check('Report blank c: 270 is right too, because the content accepts it',
+        M.markNumber('270', blankC).correct,
+        'accept.any_of = ' + JSON.stringify(blankC.accept.any_of || []));
+  check('Report blank c: 275 is wrong', !M.markNumber('275', blankC).correct);
+
+  var q2b = content.analysis.questions[1].boxes[1];     // Bluebell, key 1205 at 0 decimals
+  check('Question 2 Bluebell: 1204.5 rounds up to 1205 and is right',
+        M.markNumber('1204.5', q2b).correct);
+  check('Question 2 Bluebell: typed with a thousands separator, "1,205", is right',
+        M.markNumber('1,205', q2b).correct);
+  check('Question 2 Bluebell: 1204.4 is wrong', !M.markNumber('1204.4', q2b).correct);
+
+  var q2a = content.analysis.questions[1].boxes[0];     // Mistveil, key 876
+  check('a trailing space is ignored: "876 " is right', M.markNumber('876 ', q2a).correct);
+  var emptyMark = M.markNumber('', q2a);
+  check('an empty box is wrong and is flagged as not answered',
+        !emptyMark.correct && emptyMark.notAnswered === true);
+  check('letters in the box are wrong, but not flagged as "not answered"',
+        !M.markNumber('eight hundred', q2a).correct &&
+        M.markNumber('eight hundred', q2a).notAnswered !== true);
+
+  var pctBox = content.analysis.questions[2].boxes[0];  // has unit "%"
+  check('a box that already prints "%" takes the bare number: "9" is right',
+        M.markNumber('9', pctBox).correct, 'unit = ' + JSON.stringify(pctBox.unit));
+  check('and "9%" typed into that same box still means 9, not 0.09',
+        M.markNumber('9%', pctBox).correct);
+
+  var multiCase = null;
+  content.cases.cases.forEach(function (c) { if (c.mechanism === 'choose_many') multiCase = c; });
+  var multi = M.markMulti(['a', 'b'], multiCase.options, multiCase.answer);
+  check('multi-select is all-or-nothing: one right plus one wrong scores nothing',
+        !multi.correct);
+  check('but every option is still reported with what it should have been',
+        Object.keys(multi.per_option).length === Object.keys(multiCase.options).length &&
+        multi.per_option.b.shouldBe === true && multi.per_option.a.shouldBe === false,
+        JSON.stringify(multi.per_option));
+
+  var boxesCase = null;
+  content.cases.cases.forEach(function (c) {
+    if (c.mechanism === 'numbers' && c.boxes && c.boxes.length > 1) boxesCase = c;
+  });
+  var caseAnswers = keyAnswers(content);
+  caseAnswers.cases[boxesCase.number].boxes[boxesCase.boxes[1].id] = '999';
+  var caseMarked = M.markGame(content, caseAnswers);
+  var thatCase = caseMarked.cases.filter(function (c) { return c.number === boxesCase.number; })[0];
+  check('a case with several boxes is one mark: one wrong box makes the case wrong',
+        !thatCase.correct);
+  check('the other boxes in that case are still shown as right',
+        thatCase.detail.boxes[0].correct === true && thatCase.detail.boxes[1].correct === false);
+  check('the rest of the run is unaffected: ' + (56 - 1) + ' of 56',
+        caseMarked.total.score === 55, caseMarked.total.score + ' / ' + caseMarked.total.of);
+
+  var lateAnswers = keyAnswers(content);
+  lateAnswers.analysis[q1.id].secondsLeft = -5;
+  lateAnswers.report.chart.secondsLeft = 0;
+  var lateMarked = M.markGame(content, lateAnswers);
+  check('an answer with secondsLeft of -5 is still marked right, but flagged after time',
+        lateMarked.analysis.questions[0].boxes[0].correct === true &&
+        lateMarked.analysis.questions[0].boxes[0].late === true);
+  check('secondsLeft of exactly 0 also counts as after time',
+        lateMarked.report.chart.late === true);
+  check('the late count is 2', lateMarked.late === 2, 'late = ' + lateMarked.late);
+  check('being late does not change the score', lateMarked.total.score === 56);
+
+  /* ---- GROUP 3b — going back to the Investigation for something ------ */
+  group('3b. Return visits to the Investigation', 10);
+
+  var weight = content.version.return_visit_weight;
+  check('the content sets a return-visit weight', typeof weight === 'number',
+        'return_visit_weight = ' + JSON.stringify(weight));
+  check('for RR6 that weight is a half mark', weight === 0.5, String(weight));
+
+  /* All 29 collected, but three of them fetched on a second visit. */
+  var back = keyAnswers(content);
+  var threeLate = requiredIds.slice(0, 3);
+  back.investigation.return_visit = threeLate.slice();
+  var backMarked = M.markGame(content, back);
+  checkEqual('all 29 collected but three fetched on a return visit scores 27.5 of 29',
+             [backMarked.investigation.score, backMarked.investigation.of], [27.5, 29]);
+  checkEqual('and the total is 54.5 of 56',
+             [backMarked.total.score, backMarked.total.of], [54.5, 56]);
+  checkEqual('the three are named as return visits',
+             backMarked.investigation.returnVisit, threeLate);
+  check('and they are still counted as found, not missed',
+        backMarked.investigation.found.length === 29 &&
+        backMarked.investigation.missing.length === 0);
+
+  /* The same three, with the weight taken out of a copy of the content. */
+  var noWeight = deepCopy(content);
+  delete noWeight.version.return_visit_weight;
+  var noWeightMarked = M.markGame(noWeight, back);
+  checkEqual('with no weight in the content at all, a return visit costs nothing: 29 of 29',
+             [noWeightMarked.investigation.score, noWeightMarked.investigation.of], [29, 29]);
+  check('and the engine reports the weight it used', noWeightMarked.investigation.weight === 1);
+
+  var zeroWeight = deepCopy(content);
+  zeroWeight.version.return_visit_weight = 0;
+  var zeroMarked = M.markGame(zeroWeight, back);
+  checkEqual('with a weight of 0, only the first visit counts: 26 of 29',
+             [zeroMarked.investigation.score, zeroMarked.investigation.of], [26, 29]);
+
+  /* An id named as a return visit that was never actually collected. */
+  var ghost = keyAnswers(content);
+  ghost.investigation.journal = requiredIds.slice(1);
+  ghost.investigation.return_visit = [requiredIds[0]];
+  var ghostMarked = M.markGame(content, ghost);
+  checkEqual('an item listed as a return visit but never collected is simply missed',
+             [ghostMarked.investigation.score, ghostMarked.investigation.of], [28, 29]);
+  checkEqual('and it appears in the missed list, not the return-visit list',
+             [ghostMarked.investigation.missing, ghostMarked.investigation.returnVisit],
+             [[requiredIds[0]], []]);
+
+  /* Collect cases have no such thing as a return visit. */
+  var collectCase = null;
+  content.cases.cases.forEach(function (c) { if (c.mechanism === 'collect') collectCase = c; });
+  var caseIds = Object.keys(collectCase.items).filter(function (id) {
+    return collectCase.items[id].required;
+  });
+  var caseBack = keyAnswers(content);
+  caseBack.investigation.return_visit = caseIds.slice();   /* nonsense on purpose */
+  var caseBackMarked = M.markGame(content, caseBack);
+  var thatCollect = caseBackMarked.cases.filter(function (c) {
+    return c.number === collectCase.number;
+  })[0];
+  check('a collect case is never touched by return-visit ids', thatCollect.correct === true);
+  checkEqual('and the Investigation ignores ids that are not its own items',
+             [caseBackMarked.investigation.score, caseBackMarked.investigation.of], [29, 29]);
+
+  check('a run with no return_visit at all still marks 29 of 29',
+        M.markGame(content, keyAnswers(content)).investigation.score === 29);
+
+  var badWeight = deepCopy(content);
+  badWeight.version.return_visit_weight = 1.5;
+  var badWeightCheck = M.validateContent(badWeight.version, badWeight.investigation,
+                                         badWeight.analysis, badWeight.report, badWeight.cases);
+  check('a weight outside 0 to 1 is refused, in plain English',
+        !badWeightCheck.ok && includesMessage(badWeightCheck.errors, 'return_visit_weight'),
+        badWeightCheck.errors.join(' | ').slice(0, 240));
+
+  /* ---- GROUP 4 — the calculator's arithmetic ------------------------- */
+  group('4. Calculator arithmetic', 12);
+
+  function value(expr) { var r = MARKING.evaluate(expr); return r.error ? ('error: ' + r.error) : r.value; }
+  checkEqual('2+3*4 = 14 (multiplication before addition)', value('2+3*4'), 14);
+  checkEqual('(2+3)*4 = 20 (brackets first)', value('(2+3)*4'), 20);
+  checkEqual('10/3 = 3.333 (rounded to 3 decimal places)', value('10/3'), 3.333);
+  checkEqual('1,200*0.05 = 60 (thousands separators are ignored)', value('1,200*0.05'), 60);
+  checkEqual('365*0.029412 = 10.735, as on the real game', value('365*0.029412'), 10.735);
+  checkEqual('60/(25*6) = 0.4', value('60/(25*6)'), 0.4);
+  check('2/0 is an error, not infinity', !!MARKING.evaluate('2/0').error,
+        JSON.stringify(MARKING.evaluate('2/0')));
+  check('2++ is an error', !!MARKING.evaluate('2++').error);
+  check('abc is an error', !!MARKING.evaluate('abc').error);
+  check('an unclosed bracket is an error', !!MARKING.evaluate('(2+3').error);
+  check('an empty line is an error', !!MARKING.evaluate('').error);
+  checkEqual('a leading minus works: -5+3 = -2', value('-5+3'), -2);
+  checkEqual('161.91 keeps its own decimals and gains no trailing zeros',
+             MARKING.formatNumber(161.91), '161.91');
+  checkEqual('10.735 prints as 10.735', MARKING.formatNumber(10.735), '10.735');
+  checkEqual('a whole number prints without a decimal point', MARKING.formatNumber(876), '876');
+  check('the content uses the ^{…} superscript convention where a power appears',
+        JSON.stringify(content.cases.cases).indexOf('^{') !== -1,
+        'searched cases.json for "^{"');
+
+  check('the rules engine contains no use of the browser’s code evaluator',
+        markingSource.indexOf('ev' + 'al(') === -1,
+        'searched ' + markingSource.length + ' characters of js/marking.js');
+  check('the rules engine never touches the page or the network',
+        markingSource.indexOf('document.') === -1 &&
+        markingSource.indexOf('window.') === -1 &&
+        markingSource.indexOf('fetch(') === -1,
+        'searched ' + markingSource.length + ' characters of js/marking.js');
+
+  /* ---- GROUP 5 — the rounding rule ----------------------------------- */
+  group('5. Rounding rule', 9);
+
+  checkEqual('at 1 decimal place, 0.35 rounds up to 0.4', MARKING.roundTo(0.35, 1), 0.4);
+  checkEqual('at 1 decimal place, 0.349 rounds down to 0.3', MARKING.roundTo(0.349, 1), 0.3);
+  checkEqual('at 1 decimal place, 21.25 rounds up to 21.3', MARKING.roundTo(21.25, 1), 21.3);
+  checkEqual('at 1 decimal place, 21.24 rounds down to 21.2', MARKING.roundTo(21.24, 1), 21.2);
+  checkEqual('at 0 decimal places, 1204.5 rounds up to 1205', MARKING.roundTo(1204.5, 0), 1205);
+  checkEqual('at 0 decimal places, 876.4 rounds down to 876', MARKING.roundTo(876.4, 0), 876);
+  checkEqual('at 2 decimal places, 1.005 rounds up to 1.01 — the case that needs the guard',
+             MARKING.roundTo(1.005, 2), 1.01);
+  checkEqual('at 2 decimal places, 2.675 rounds up to 2.68 — another of the same kind',
+             MARKING.roundTo(2.675, 2), 2.68);
+  checkEqual('negative numbers round half up too: -0.35 becomes -0.3',
+             MARKING.roundTo(-0.35, 1), -0.3);
+  checkEqual('parsing strips commas and spaces', MARKING.parseNumber(' 1,204.5 ', false), 1204.5);
+  checkEqual('parsing rejects text that is not a number', MARKING.parseNumber('12a', false), null);
+  checkEqual('a percent sign divides by 100 when the box has no % of its own',
+             MARKING.parseNumber('16%', false), 0.16);
+  checkEqual('but not when the box already shows %', MARKING.parseNumber('16%', true), 16);
+
+  /* ---- GROUP 6 — engine invariants ----------------------------------- */
+  group('6. Engine invariants', 6);
+
+  var twice1 = JSON.stringify(M.markGame(content, keyAnswers(content)));
+  var twice2 = JSON.stringify(M.markGame(content, keyAnswers(content)));
+  check('marking the same run twice gives exactly the same result', twice1 === twice2);
+
+  var emptyRun = M.markGame(content, {});
+  check('marking a run where nothing was answered does not throw', true);
+  checkEqual('an empty run scores zero out of the same denominators',
+             [emptyRun.total.score, emptyRun.total.of], [0, 56]);
+  checkEqual('the four denominators are 29 / 8 / 13 / 6',
+             [emptyRun.investigation.of, emptyRun.analysis.of,
+              emptyRun.report.of, emptyRun.casesOf], [29, 8, 13, 6]);
+  check('an empty run flags nothing as after time', emptyRun.late === 0);
+  check('an empty run reports every required Investigation item as missed',
+        emptyRun.investigation.missing.length === 29);
+
+  var keyPrint = M.answerKey(content);
+  checkEqual('the printed answer key counts the same items as the marker',
+             [keyPrint.totals.investigation, keyPrint.totals.analysis,
+              keyPrint.totals.report, keyPrint.totals.cases, keyPrint.totals.total],
+             [29, 8, 13, 6, 56]);
+  check('the printed answer key names every case', keyPrint.cases.length === 6);
+  check('the printed answer key lists all 29 required Investigation items with their sections',
+        keyPrint.investigation.length === 29 &&
+        keyPrint.investigation.every(function (i) { return i.section !== ''; }));
+
+  render();
+}
+
+/* ------------------------------------------------------------------ */
+
+Promise.all([
+  CONTENT.loadVersion(CONTENT.versionFromUrl(window.location.search, 'rr6'), ''),
+  fetch('js/marking.js', { cache: 'no-store' }).then(function (r) { return r.text(); })
+]).then(function (parts) {
+  var loaded = parts[0];
+  if (!loaded.ok) {
+    group('Loading the content', 1);
+    loaded.errors.forEach(function (e) { check(e, false); });
+    render();
+    return;
+  }
+  run(loaded.content, parts[1]);
+}).catch(function (err) {
+  group('Loading the content', 1);
+  check('The test page could not start: ' + (err.message || err), false);
+  render();
+});
+</script>
+</body>
+</html>

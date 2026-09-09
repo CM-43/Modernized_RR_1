@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make a passcode</title>
+<link rel="stylesheet" href="../css/shared-styles.css">
+<style>
+  body { display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .box { width: min(620px, 94vw); }
+  .card { padding: var(--space-6) 28px; }
+  h1 { font-size: clamp(19px, 1.8vw, 25px); margin-bottom: var(--space-2); }
+  p  { font-size: max(13px, 0.88em); color: var(--on-light-muted); margin: 0 0 var(--space-4); }
+  .out {
+    background: var(--surface-sunken); border: 1px solid var(--surface-line);
+    border-radius: var(--radius-small); padding: var(--space-3);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: max(12px, 0.8em); word-break: break-all; min-height: 44px;
+    color: var(--on-light);
+  }
+  .row { display: flex; gap: var(--space-2); margin-top: var(--space-3); align-items: center; }
+  .note { font-size: max(12px, 0.8em); color: var(--on-light-muted); margin-top: var(--space-3); }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="card">
+    <h1>Make a passcode</h1>
+    <p>
+      Type the password you want candidates to use. This page turns it into the scrambled
+      fingerprint that goes into <strong>config.js</strong>. Nothing is sent anywhere —
+      the scrambling happens inside your own browser.
+    </p>
+
+    <div class="field">
+      <label for="pw">Password</label>
+      <input id="pw" type="text" autocomplete="off" spellcheck="false"
+             placeholder="type the password here">
+    </div>
+
+    <p style="margin-bottom:6px"><strong>Paste this into <code>passcodeHash</code>:</strong></p>
+    <div class="out" id="out">…</div>
+
+    <div class="row">
+      <button class="btn" id="copy" type="button">Copy</button>
+      <span class="note" id="said"></span>
+    </div>
+
+    <p class="note">
+      If this page shows a message about needing https, open it from your published web
+      address rather than from a file on your own computer. Browsers only offer the
+      scrambling function on a real web address.
+    </p>
+  </div>
+</div>
+
+<script>
+'use strict';
+var pw = document.getElementById('pw');
+var out = document.getElementById('out');
+var said = document.getElementById('said');
+
+function toHex(buffer) {
+  return Array.prototype.map.call(new Uint8Array(buffer), function (b) {
+    return ('00' + b.toString(16)).slice(-2);
+  }).join('');
+}
+
+function update() {
+  var text = pw.value;
+  if (!text) { out.textContent = '…'; return; }
+  if (!window.crypto || !window.crypto.subtle) {
+    out.textContent = 'This browser will only scramble passwords on an https address. ' +
+                      'Open this page from your published site.';
+    return;
+  }
+  window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+    .then(function (digest) { out.textContent = toHex(digest); })
+    .catch(function () { out.textContent = 'Could not scramble the password in this browser.'; });
+}
+
+pw.addEventListener('input', update);
+document.getElementById('copy').addEventListener('click', function () {
+  var text = out.textContent;
+  if (!text || text === '…') { said.textContent = 'Type a password first.'; return; }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function () {
+      said.textContent = 'Copied.';
+      setTimeout(function () { said.textContent = ''; }, 2000);
+    });
+  } else {
+    said.textContent = 'Select the text above and copy it.';
+  }
+});
+pw.focus();
+</script>
+</body>
+</html>

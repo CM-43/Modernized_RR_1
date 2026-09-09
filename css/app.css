@@ -1,0 +1,1176 @@
+/* ==========================================================================
+   app.css — EVERYTHING THAT IS REDROCK'S OWN
+
+   css/shared-styles.css loads first and supplies the family look: the
+   palette, the type sizes, the spacing steps, buttons, popups, the results
+   screen. THAT FILE IS NOT EDITED. Anything below either uses one of its
+   named values (the var(--…) names) or adds something only Redrock has.
+
+   WHERE THINGS SIT IS NOT NEGOTIABLE (Rule Zero). The three columns, the
+   phase tabs down the left, Restart under them, the Research Journal down
+   the right, the calculator beside the question, the primary button in the
+   bottom-right of the middle column — all of that is copied from the current
+   simulation because a candidate's muscle memory for where things are is
+   part of what we are training. How those things are DRAWN is what this file
+   improves.
+   ========================================================================== */
+
+:root {
+  /* The three columns, as fractions of the playing area. These are the
+     current simulation's proportions (7% / 60% / 25%) and they are a
+     decision, not a guess — see R-D26. */
+  --nav-width:    7%;
+  --nav-min:      150px;
+  --journal-width: 25%;
+  --journal-min:  230px;
+  --column-gap:   16px;
+
+  /* Draggables. A piece of information is a LIGHT chip while it is still
+     available and a DARK one once it has been collected (R-D34). */
+  --chip-bg:        #eef2f9;
+  --chip-border:    #b9c3d4;
+  --chip-text:      #1a2230;
+  --chip-taken-bg:     #3a465c;
+  --chip-taken-border: #4d5b74;
+  --chip-taken-text:   #93a0b6;
+}
+
+/* ==========================================================================
+   1. THE FRAME
+   ========================================================================== */
+
+/* The header's middle third holds the clock. `.header-left` and
+   `.header-right` are given equal weight by the shared stylesheet, so the
+   clock between them lands in the true centre of the bar whatever the tabs
+   on either side are doing. */
+.header-middle {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* The two part labels at the left of the header, as the real game has them:
+   "Part 1 · Study" and "Part 2 · Cases (6)". The case count is visible
+   throughout, which is a fidelity point, not decoration. */
+.part-tab {
+  font-size: max(12px, 0.78em);
+  padding: 5px 11px;
+  border-radius: 999px;
+  color: var(--on-dark-muted);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.part-tab.is-current {
+  color: var(--on-dark);
+  background: rgba(255, 255, 255, 0.10);
+  border-color: var(--box-border);
+  font-weight: 600;
+}
+
+.icon-btn {
+  background: transparent;
+  border: 1px solid var(--box-border);
+  border-radius: var(--radius-small);
+  color: var(--on-dark);
+  cursor: pointer;
+  padding: 5px 8px;
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.12s ease;
+}
+.icon-btn:hover { background: rgba(255, 255, 255, 0.09); }
+.icon-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.icon-btn svg { display: block; }
+
+/* The clock's warning notices — "5 Minute Warning" and so on — sit at the
+   top right, under the header, and fade away on their own. They never pause
+   the clock. */
+/* The notice sits INSIDE the playing area, below the header bar, so it can
+   never cover the clock or the Part tabs — which would be the one thing a
+   time warning must not do. */
+.time-warning {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 40;
+  max-width: min(360px, 60%);
+  background: var(--warning-soft);
+  color: #7c4a03;
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-small);
+  padding: 10px 40px 11px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  animation: fade-in 180ms ease;
+}
+.time-warning .warning-title {
+  font-weight: 700;
+  font-size: max(14px, 0.92em);
+  line-height: 1.3;
+}
+.time-warning .warning-text {
+  font-size: max(12px, 0.82em);
+  line-height: 1.4;
+  margin-top: 3px;
+}
+.warning-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px; height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #7c4a03;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.warning-close:hover { background: rgba(124, 74, 3, 0.14); }
+.warning-close:focus-visible { outline: 2px solid var(--warning); outline-offset: 1px; }
+
+.stage { gap: 0; }
+
+/* ==========================================================================
+   2. THE THREE COLUMNS
+   ========================================================================== */
+
+/* `min-width: 0` IS LOAD-BEARING. Without it this row refuses to shrink below
+   the natural width of its contents, and — because the two outer columns are
+   sized as a PERCENTAGE OF THIS ROW — the row and the columns then inflate
+   each other: a wider row makes a wider journal, which makes a wider row. At
+   900px the row came out 946px inside an 872px box, and `.main-box`'s
+   `overflow: hidden` quietly cut 74px off the right-hand edge of the Research
+   Journal. Nothing reported an error; the panel was simply narrower than it
+   looked and part of it was unreachable. */
+.columns {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  gap: var(--column-gap);
+  padding: var(--space-4);
+}
+
+/* --- LEFT: the phase tabs, and Restart at the bottom ------------------- */
+.nav-col {
+  flex: 0 0 var(--nav-width);
+  min-width: var(--nav-min);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--box-border);
+  padding-right: var(--space-3);
+}
+.nav-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 2px;
+}
+
+/* A phase tab. Sea Wolf-style pill: rounded, flat, no gradient.
+
+   THE PLAIN `.tab` IS A TAB YOU CAN PRESS, and it is drawn at full
+   brightness with a clear fill and a visible border — as the real game draws
+   its reachable tabs. It was too close to the locked style before: a 5% fill
+   next to a dimmed transparent pill, which made a live Investigation tab look
+   as unavailable as a locked one and put candidates off pressing it. */
+.tab {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-family: inherit;
+  font-size: max(13px, 0.88em);
+  font-weight: 600;
+  padding: 8px 6px;
+  border-radius: 999px;
+  border: 1px solid #5c6a86;
+  background: rgba(255, 255, 255, 0.13);
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+  line-height: 1.25;
+}
+.tab:hover:not(:disabled) { background: rgba(255, 255, 255, 0.22); border-color: #7d8aa4; }
+.tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* A tab that is deliberately out of reach — an earlier question, a phase not
+   yet started. It stays VISIBLE, because the candidate is meant to see the
+   shape of the whole assessment, but it cannot be pressed. That is the real
+   game's behaviour and it is not softened — only made clearly different from
+   a tab that can be pressed. */
+.tab:disabled,
+.tab.is-locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: transparent;
+  border-color: var(--box-border);
+  color: var(--on-dark);
+  font-weight: 500;
+}
+
+/* The phase the candidate is in.
+
+   THIS BLOCK MUST STAY BELOW THE LOCKED ONE ABOVE. The tab for the current
+   phase is also un-pressable — there is nowhere to go — so it carries both
+   `is-current` and `is-locked`, and whichever block comes second wins.
+   Written the other way round the current phase was drawn dimmed and
+   transparent, which is exactly the "two rules for the same property, the
+   second silently cancels the first" trap in SW-LEARNINGS 3.11. */
+.tab.is-current,
+.tab.is-current:disabled {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  opacity: 1;
+  cursor: default;
+}
+
+/* Sub-tabs sit indented under the phase they belong to. */
+.tab-sub {
+  font-size: max(12px, 0.82em);
+  font-weight: 500;
+  padding: 6px 6px;
+  margin-left: 14px;
+  width: calc(100% - 14px);
+}
+/* The section of the Investigation currently in view.
+
+   A PALE FILL WITH DARK TEXT IS NOT A HIGHLIGHT ON A DARK COLUMN. It was
+   `--accent-soft` with dark text before, which is perfectly readable and
+   measured fine — and still read as the greyed-out one of the six, because in
+   a dark interface the eye takes "light chip, dark text" to mean disabled.
+   A brightened accent wash with white text reads as picked out, and is still
+   clearly softer than the solid accent of the phase you are in. */
+.tab-sub.is-inview {
+  background: rgba(37, 99, 235, 0.34);
+  border-color: var(--accent);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+/* A case already finished. Struck through, as the real game shows them. */
+.tab-sub.is-done { text-decoration: line-through; }
+
+.nav-heading {
+  font-size: max(12px, 0.78em);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--on-dark-muted);
+  margin: var(--space-3) 0 2px;
+  padding-left: 4px;
+}
+
+.nav-foot { flex: 0 0 auto; padding-top: var(--space-3); }
+/* Restart stays where the current Redrock puts it — under the left tab
+   strip, not in the header as Sea Wolf has it (R-D23). */
+.btn-restart {
+  width: 100%;
+  color: #fca5a5;
+  border-color: rgba(220, 38, 38, 0.5);
+}
+.btn-restart:hover:not(:disabled) { background: rgba(220, 38, 38, 0.18); }
+
+/* --- MIDDLE: the working area ----------------------------------------- */
+.work-col {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.work-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: var(--space-3);
+}
+/* The primary button's row. It is always here, always the same height, so
+   the button never moves between screens even when a screen has no button. */
+.work-actions {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  min-height: 52px;
+}
+
+/* The Analysis screen splits the middle column: question on the left,
+   calculator on the right (R-D34 — checked against the rendered page, not
+   the source order, which had it wrong). */
+/* `min-width: 0` here for the same reason as on `.columns` above: this row
+   holds two children sized as percentages OF ITSELF, so without it the row
+   and its children can inflate one another and push past the column. Every
+   flex row in this file whose children are sized in percentages carries it. */
+.work-split {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  gap: var(--space-5);
+}
+.work-split .question-col {
+  flex: 1 1 56%;
+  min-width: 0;
+  overflow-y: auto;
+  padding-right: var(--space-3);
+}
+.work-split .calc-col {
+  flex: 0 0 40%;
+  min-width: 205px;
+  max-width: 330px;
+  overflow-y: auto;
+}
+
+/* --- RIGHT: the Research Journal or the calculator --------------------- */
+/* On a case that needs neither, this column is NOT DRAWN and the middle
+   column takes its width — `.work-col.is-wide` above. That is what the
+   current simulation does and what the real game does (rule 2.5 v1.1,
+   R-D36); the earlier build kept an empty track here and it was wrong. */
+.side-col {
+  flex: 0 0 var(--journal-width);
+  min-width: var(--journal-min);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--box-border);
+  padding-left: var(--space-4);
+}
+
+/* ==========================================================================
+   3. THE RESEARCH JOURNAL
+   ========================================================================== */
+
+.journal { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.journal > h2 {
+  flex: 0 0 auto;
+  font-size: max(14px, 0.95em);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--box-border);
+  margin-bottom: var(--space-3);
+}
+.journal-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 2px;
+  border-radius: var(--radius-small);
+}
+/* While something is being dragged over it, the whole panel says so. */
+.journal-list.is-target {
+  outline: 2px dashed var(--accent);
+  outline-offset: 2px;
+  background: rgba(37, 99, 235, 0.10);
+}
+.journal-empty {
+  color: var(--on-dark-muted);
+  font-size: max(12px, 0.82em);
+  padding: var(--space-3) 2px;
+  line-height: 1.5;
+}
+
+.journal-item {
+  background: var(--surface);
+  color: var(--on-light);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius-small);
+  padding: 8px 10px;
+  position: relative;
+  cursor: grab;
+}
+.journal-item.is-dragging { opacity: 0.45; }
+.journal-item.is-over { border-color: var(--accent); box-shadow: 0 -3px 0 var(--accent) inset; }
+.journal-hint {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-size: max(12px, 0.8em);
+  color: var(--on-dark-muted);
+  margin: -6px 0 var(--space-3);
+  line-height: 1.4;
+}
+.journal-hint .hint-icon { display: inline-flex; align-items: center; }
+.journal-hint svg { width: 14px; height: 14px; }
+
+.journal-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+/* The value or text, and the expand arrow at the right of that row —
+   the arrangement the real game uses (rule 4.4 v1.1). */
+.journal-value-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+}
+.journal-value-row .journal-text { flex: 1 1 auto; min-width: 0; margin-top: 0; }
+.journal-value-row .mini-btn.expand { margin-top: -1px; }
+
+/* Mark as important. Hollow until pressed, filled after. */
+.mark-btn {
+  flex: 0 0 auto;
+  width: 22px; height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--on-light-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.mark-btn:hover { background: var(--surface-sunken); color: var(--on-light); }
+.mark-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mark-btn.is-on { color: var(--warning); }
+.journal-item.is-marked {
+  border-color: var(--warning);
+  box-shadow: inset 3px 0 0 var(--warning);
+}
+
+/* The pencil that renames. It is the discoverable way in; clicking the title
+   still works, as it did before. */
+.mini-btn.pencil {
+  border: none;
+  background: transparent;
+  width: 18px; height: 18px;
+  font-size: 12px;
+}
+.mini-btn.pencil:hover { background: var(--surface-sunken); }
+/* The title does NOT stretch: the pencil sits immediately after the words,
+   as it does in the real game, and the ✕ is pushed to the far right by its
+   own margin below. A stretching title would have put the pencil out at the
+   right-hand edge, next to the ✕, where it reads as a second remove button. */
+.journal-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-weight: 700;
+  font-size: max(12px, 0.82em);
+  line-height: 1.35;
+  cursor: text;
+  border-radius: 4px;
+  padding: 1px 3px;
+  margin: -1px -3px;
+}
+.journal-title:hover { background: var(--surface-sunken); }
+.journal-title-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: max(12px, 0.82em);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 1px 3px;
+  background: var(--surface-plain);
+  color: var(--on-light);
+}
+.journal-text {
+  font-size: max(12px, 0.82em);
+  color: var(--on-light);
+  line-height: 1.4;
+  word-break: break-word;
+  background: var(--surface-plain);
+  border: 1px solid var(--surface-line);
+  border-radius: 6px;
+  padding: 3px 7px;
+}
+/* One line and an ellipsis, as the real game shows it.
+
+   This was a line-clamp before, and a clamp leaves a sliver of the second
+   line showing under the box on some text — it clips at the line box, not at
+   the edge you can see. Truncating a single line cannot do that. */
+.journal-text.is-clipped {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mini-btn {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--surface-line);
+  background: var(--surface-plain);
+  color: var(--on-light-muted);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.mini-btn:hover { background: var(--surface-sunken); color: var(--on-light); }
+.mini-btn.remove { margin-left: auto; }
+.mini-btn.remove:hover { background: var(--error); border-color: var(--error); color: #fff; }
+.mini-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ==========================================================================
+   4. THE INVESTIGATION PAGE AND ITS CONTENT BLOCKS
+   ========================================================================== */
+
+.directions {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--box-border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-small);
+  padding: 10px var(--space-4);
+  margin-bottom: var(--space-5);
+  font-size: max(13px, 0.88em);
+  color: var(--on-dark);
+}
+
+.section { margin-bottom: var(--space-6); scroll-margin-top: var(--space-3); }
+.section > h2 {
+  font-size: max(16px, 1.08em);
+  margin-bottom: var(--space-3);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--box-border);
+}
+.section h3 {
+  font-size: max(14px, 0.95em);
+  margin: var(--space-5) 0 var(--space-2);
+}
+.block-text {
+  margin: 0 0 var(--space-3);
+  line-height: 1.6;
+  font-size: max(14px, 0.92em);
+}
+.block-list {
+  margin: 0 0 var(--space-3);
+  padding-left: 20px;
+  line-height: 1.9;
+  font-size: max(14px, 0.92em);
+}
+
+/* Content a candidate has to READ sits on a light card, always. That is the
+   one hard rule in the style guide, and tables are where it matters most. */
+.data-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  margin: 0 0 var(--space-4);
+  overflow-x: auto;
+}
+table.data-table {
+  border-collapse: collapse;
+  width: 100%;
+  color: var(--on-light);
+  font-size: max(13px, 0.86em);
+}
+table.data-table th,
+table.data-table td {
+  padding: 7px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--surface-line);
+  white-space: nowrap;
+}
+table.data-table thead th {
+  font-weight: 700;
+  background: var(--surface-sunken);
+  border-bottom: 2px solid var(--chip-border);
+}
+table.data-table tbody tr:nth-child(even) { background: rgba(0, 0, 0, 0.028); }
+table.data-table tbody tr:last-child td { border-bottom: none; }
+/* The first column of a data table names the row; it is a label, never a
+   value the candidate can drag. */
+table.data-table td.row-label,
+table.data-table thead th:first-child { text-align: left; font-weight: 700; }
+
+/* --- DRAGGABLE CHIPS --------------------------------------------------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  border: 1px solid var(--chip-border);
+  border-radius: var(--radius-small);
+  padding: 1px 7px 1px 4px;
+  cursor: grab;
+  font-size: 0.96em;
+  line-height: 1.4;
+  vertical-align: baseline;
+  transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+  max-width: 100%;
+}
+.chip:hover { border-color: var(--accent); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18); }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip.is-dragging { opacity: 0.5; }
+
+/* The grip: three short bars, drawn rather than typed, so it sits in the
+   middle of the chip on every platform. */
+.chip .grip {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 12px;
+  background:
+    linear-gradient(var(--chip-border), var(--chip-border)) 0 2px / 9px 1.5px no-repeat,
+    linear-gradient(var(--chip-border), var(--chip-border)) 0 5px / 9px 1.5px no-repeat,
+    linear-gradient(var(--chip-border), var(--chip-border)) 0 8px / 9px 1.5px no-repeat;
+  opacity: 0.85;
+}
+
+/* Once a piece of information is in the journal it turns dark and cannot be
+   dragged again until it is removed from the journal (R-D34). */
+.chip.is-taken {
+  background: var(--chip-taken-bg);
+  border-color: var(--chip-taken-border);
+  color: var(--chip-taken-text);
+  cursor: default;
+  box-shadow: none;
+}
+.chip.is-taken .grip { display: none; }
+.chip.is-taken:hover { border-color: var(--chip-taken-border); box-shadow: none; }
+
+/* A chip standing alone in a table cell has no room for the grip. */
+table.data-table .chip { padding: 1px 6px; }
+table.data-table .chip .grip { width: 7px; }
+
+/* ==========================================================================
+   5. QUESTIONS AND ANSWER BOXES
+   ========================================================================== */
+
+.q-heading { font-size: max(16px, 1.08em); margin-bottom: var(--space-3); }
+.q-text {
+  font-size: max(14px, 0.94em);
+  line-height: 1.6;
+  margin: 0 0 var(--space-5);
+}
+.sub-heading {
+  font-size: max(15px, 1em);
+  font-weight: 600;
+  margin: var(--space-5) 0 var(--space-3);
+}
+
+.answer-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+.answer-row .answer-label {
+  flex: 0 0 auto;
+  font-size: max(13px, 0.9em);
+  min-width: 118px;
+}
+.answer-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-plain);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius-small);
+  padding: 2px 6px 2px 2px;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.answer-field:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.answer-field.is-target { border-color: var(--accent); background: var(--accent-soft); }
+.answer-field input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: max(14px, 0.92em);
+  color: var(--on-light);
+  padding: 6px 4px 6px 8px;
+  width: 132px;
+  min-width: 0;
+}
+.answer-unit {
+  font-size: max(13px, 0.88em);
+  color: var(--on-light-muted);
+  padding-right: 2px;
+}
+/* The small ⓧ that empties a box. The real game has one beside every answer
+   box, so ours does too (R-D33). */
+.clear-btn {
+  flex: 0 0 auto;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-sunken);
+  color: var(--on-light-muted);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.clear-btn:hover { background: var(--error); color: #fff; }
+.clear-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+select.dropdown {
+  font-family: inherit;
+  font-size: max(13px, 0.9em);
+  padding: 7px 10px;
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius-small);
+  background: var(--surface-plain);
+  color: var(--on-light);
+  cursor: pointer;
+  min-width: 132px;
+}
+select.dropdown:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+
+/* The choice rows use the shared `.choice` component; these two lines make a
+   list of them, and give the chart pictures somewhere to sit. */
+.choice-list { display: flex; flex-direction: column; gap: var(--space-2); max-width: 720px; }
+.choice input { flex: 0 0 auto; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+.choice .chart-icon { flex: 0 0 auto; }
+.choice .label { color: var(--on-light); font-size: max(13px, 0.9em); }
+
+/* Chart-type options shown as picture cards, as the real game shows them. */
+.card-choices { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.card-choices .choice {
+  flex-direction: column;
+  width: 150px;
+  gap: 6px;
+  padding: var(--space-3);
+  text-align: center;
+}
+.card-choices .choice .label { flex: 0 0 auto; }
+
+/* ==========================================================================
+   6. THE CALCULATOR
+
+   R-D3: the candidate still does the arithmetic. This is a plain
+   four-function calculator with a history, exactly as the real game has —
+   pleasanter to use, no cleverer.
+   ========================================================================== */
+
+.calc {
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--on-light);
+}
+.calc-history {
+  height: 122px;
+  overflow-y: auto;
+  background: var(--surface-plain);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius-small);
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: max(12px, 0.78em);
+}
+.calc-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 2px 4px;
+  border-bottom: 1px dotted var(--surface-line);
+}
+.calc-history-row:last-child { border-bottom: none; }
+.calc-history-row .expr {
+  color: var(--on-light-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.calc-history-empty { color: var(--on-light-muted); padding: 4px; }
+
+.calc-result {
+  background: var(--surface-sunken);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius-small);
+  padding: 6px 8px;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: max(15px, 1.05em);
+  font-weight: 700;
+}
+.calc-result.is-error { color: var(--error); font-weight: 600; }
+
+.calc-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: max(14px, 0.95em);
+  text-align: right;
+  padding: 8px 10px;
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius-small);
+  background: var(--surface-plain);
+  color: var(--on-light);
+}
+.calc-input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+.calc-input.is-target { border-color: var(--accent); background: var(--accent-soft); }
+
+.calc-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.calc-key {
+  font-family: inherit;
+  font-size: max(14px, 0.95em);
+  font-weight: 600;
+  padding: 9px 0;
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius-small);
+  background: var(--surface-plain);
+  color: var(--on-light);
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+.calc-key:hover { background: var(--surface-sunken); }
+.calc-key:active { transform: translateY(1px); }
+.calc-key:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.calc-key.is-op { color: var(--accent); }
+.calc-key.is-equals { background: var(--accent); border-color: var(--accent); color: #fff; }
+.calc-key.is-equals:hover { background: var(--accent-dark); }
+.calc-key.is-clear { color: var(--error); }
+
+/* The result, and every result in the history, can be dragged into an answer
+   box, into the journal, or back into the input line. */
+.calc-chip {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  font-weight: 700;
+  font-size: max(12px, 0.8em);
+}
+
+/* ==========================================================================
+   7. THE REPORT
+   ========================================================================== */
+
+.report-prose {
+  font-size: max(14px, 0.94em);
+  line-height: 2.4;
+  max-width: 62em;
+}
+.report-prose p { margin: 0 0 var(--space-4); }
+.report-prose .answer-field { margin: 0 2px; }
+.report-prose .answer-field input { width: 92px; padding: 4px 4px 4px 6px; }
+.report-prose select.dropdown { min-width: 104px; padding: 4px 8px; margin: 0 2px; }
+
+.chart-frame {
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  color: var(--on-light);
+}
+.chart-frame svg { display: block; width: 100%; height: auto; }
+.chart-empty {
+  color: var(--on-light-muted);
+  font-size: max(13px, 0.86em);
+  text-align: center;
+  padding: var(--space-6) 0;
+}
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-3);
+  font-size: max(12px, 0.8em);
+  color: var(--on-light-muted);
+}
+.chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.chart-legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+/* The grid of numbers under the chart. */
+table.grid-table {
+  border-collapse: collapse;
+  color: var(--on-light);
+  font-size: max(13px, 0.86em);
+}
+table.grid-table th, table.grid-table td {
+  padding: 6px 10px;
+  border: 1px solid var(--surface-line);
+  text-align: center;
+}
+table.grid-table thead th { background: var(--surface-sunken); font-weight: 700; }
+table.grid-table th.grid-row-label { text-align: left; font-weight: 700; background: var(--surface); }
+table.grid-table td { background: var(--surface-plain); }
+table.grid-table .answer-field { border: none; padding: 0; background: transparent; }
+table.grid-table .answer-field input { width: 104px; text-align: center; }
+table.grid-table td.is-fixed { color: var(--on-light-muted); font-weight: 600; }
+
+/* ==========================================================================
+   8. LOGIN AND START (before the clock — free design)
+   ========================================================================== */
+
+.centre-screen {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  overflow-y: auto;
+}
+.login-card { width: min(420px, 92vw); padding: var(--space-6) 28px; }
+.login-card h1 { font-size: clamp(19px, 1.7vw, 24px); text-align: center; margin-bottom: var(--space-5); }
+.login-card .btn { width: 100%; padding: 11px 22px; }
+
+.start-card { width: min(860px, 94vw); padding: var(--space-6) 30px 26px; }
+.start-card h1 { font-size: clamp(21px, 2.1vw, 30px); }
+.start-scenario { color: var(--on-light-muted); font-size: max(14px, 0.95em); margin: 4px 0 var(--space-5); }
+.start-phases { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-5); }
+.start-phase {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  background: var(--surface-plain);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius-small);
+  padding: 10px var(--space-4);
+}
+.start-phase .n {
+  flex: 0 0 auto;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.start-phase .what { font-size: max(13px, 0.88em); }
+.start-phase .what b { display: block; font-size: max(14px, 0.92em); }
+.start-facts { display: flex; gap: var(--space-4); flex-wrap: wrap; margin-bottom: var(--space-5); }
+.start-fact {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-small);
+  padding: 10px var(--space-4);
+  min-width: 150px;
+}
+.start-fact .k { font-size: max(12px, 0.78em); color: var(--on-light-muted); }
+.start-fact .v { font-size: max(17px, 1.15em); font-weight: 700; }
+.start-actions { display: flex; justify-content: flex-end; }
+
+.load-error {
+  width: min(760px, 94vw);
+  padding: var(--space-6) 28px;
+}
+.load-error h1 { font-size: clamp(19px, 1.7vw, 24px); margin-bottom: var(--space-3); }
+.load-error ul { margin: 0; padding-left: 20px; font-size: max(13px, 0.88em); line-height: 1.7; }
+
+/* ==========================================================================
+   9. POPUPS
+   ========================================================================== */
+
+/* The shared stylesheet fixes every popup at the same size. Nothing here
+   changes that — these rules only place the buttons and, for the two long
+   tutorial messages, let the text breathe within the fixed box. */
+.modal-actions .btn-back {
+  background: transparent;
+  color: var(--on-light);
+  border: 1px solid var(--surface-line);
+}
+.modal-actions .btn-back:hover:not(:disabled) { background: var(--surface-sunken); }
+
+/* ==========================================================================
+   10. THE RESULTS SCREEN (after the clock — free design)
+   ========================================================================== */
+
+/* The four phase tiles sit in ONE ROW exactly as wide as the Total tile
+   beneath them, so the total reads as the sum of the four.
+
+   `auto-fit` was wrong here: at 1400px and above it made room for five
+   columns, so the four tiles filled four of them and left a gap at the right
+   that made the row look unfinished — and each column was narrow enough that
+   "13 / 13" wrapped onto two lines. Four fixed columns cannot do either. */
+.tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tile.tile-total { grid-column: 1 / -1; }
+/* A score is one line, always. It is the number the candidate looks for. */
+.tile .tile-score {
+  white-space: nowrap;
+  font-size: clamp(21px, 2.3vw, 38px);
+}
+.tile { padding: 14px var(--space-4); }
+.tile .tile-name, .tile .tile-best { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Below the four-across width the row becomes two-by-two rather than
+   squeezing four scores into a phone-width strip. */
+@media (max-width: 760px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.tile.tile-total .tile-score { color: var(--accent); }
+/* A full score is green here as it is on every other tile. This rule has to
+   come after the blue one above, or the blue would cancel it. */
+.tile.tile-total.is-best .tile-score { color: var(--success); }
+
+.late-tag {
+  display: inline-block;
+  background: var(--warning-soft);
+  color: #7c4a03;
+  border: 1px solid var(--warning);
+  border-radius: 999px;
+  font-size: max(11px, 0.7em);
+  font-weight: 600;
+  padding: 0 7px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+.block-head .chev { color: var(--on-light-muted); font-size: max(13px, 0.85em); }
+.block-head .head-right { display: flex; align-items: center; gap: var(--space-3); }
+.block-body { padding-top: var(--space-4); }
+
+.mark-row .mark-what { flex: 1 1 auto; min-width: 0; }
+.mark-row .mark-what b { font-size: max(13px, 0.88em); }
+.mark-row .mark-answers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  font-size: max(13px, 0.86em);
+  margin-top: 3px;
+}
+.mark-row .mark-answers span { color: var(--on-light-muted); }
+.mark-row .mark-answers b { color: var(--on-light); font-weight: 600; }
+.mark-reason { margin-top: 5px; line-height: 1.55; }
+.mark-row.is-wrong { border-radius: var(--radius-small); padding-left: var(--space-3); padding-right: var(--space-3); }
+
+.collect-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: var(--space-4); }
+.collect-lists h3 { font-size: max(13px, 0.88em); margin-bottom: var(--space-2); }
+.collect-lists ul { margin: 0; padding-left: 18px; font-size: max(12px, 0.84em); line-height: 1.65; }
+.collect-lists .none { color: var(--on-light-muted); font-size: max(12px, 0.84em); }
+.collect-lists .col-missed h3 { color: var(--error); }
+.collect-lists .col-found h3 { color: var(--success); }
+
+.option-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: max(13px, 0.86em);
+  padding: 3px 0;
+}
+.option-row .icon { flex: 0 0 auto; font-weight: 700; width: 16px; }
+.option-row.is-right .icon { color: var(--success); }
+.option-row.is-wrong .icon { color: var(--error); }
+
+/* When the results are printed, every folded block is opened first — a
+   printed page that hides half its content is worse than useless. */
+@media print {
+  .block-body { display: block !important; }
+  .block-head .chev { display: none; }
+  .mark-row.is-wrong { background: #fff; border-left: 3px solid #dc2626; }
+}
+
+/* ==========================================================================
+   11. SMALL SCREENS
+
+   Above the 900 × 540 floor the layout is fluid. These two steps stop the
+   columns squeezing the middle out of existence on a small laptop; they
+   change proportions only, never which column anything is in.
+   ========================================================================== */
+@media (max-width: 1180px) {
+  :root { --journal-width: 26%; --journal-min: 210px; --nav-min: 132px; --column-gap: 12px; }
+  .work-split .calc-col { flex: 0 0 44%; min-width: 190px; }
+  .columns { padding: var(--space-3); }
+}
+@media (max-width: 1000px) {
+  :root { --journal-min: 190px; --nav-min: 118px; }
+  .tab { font-size: max(12px, 0.8em); padding: 7px 4px; }
+  .tab-sub { margin-left: 9px; width: calc(100% - 9px); }
+  .calc-history { height: 92px; }
+}
+
+/* A SHORT window, not a narrow one. On a 540px-tall laptop screen the
+   calculator's five rows of keys were running off the bottom of its column.
+   Nothing moves — the calculator stays beside the question, where it is on
+   every other size — it simply gives itself less room for past calculations
+   so that all twenty keys are reachable without scrolling. */
+@media (max-height: 660px) {
+  .calc-history { height: 58px; }
+  .calc { padding: var(--space-2); gap: 6px; }
+  .calc-result { min-height: 32px; }
+  .calc-input { padding: 6px 8px; }
+  .calc-key { padding: 6px 0; }
+  .work-actions { min-height: 44px; padding-top: var(--space-2); }
+  .columns { padding: var(--space-3); }
+}
+
+/* ==========================================================================
+   12. A CHARTED EXHIBIT
+
+   RR6 has no charted exhibit — its exhibits are tables. RR1 to RR3 do, and
+   in the old application they were PICTURES with the numbers painted on,
+   which is why one of them showed 53 where its answer key said 56 and why
+   none of those numbers could be collected. Here the chart is drawn from the
+   data, and every bar's value is a real chip the candidate can drag (R-D28).
+   ========================================================================== */
+.bar-chart-wrap { position: relative; }
+.bar-chart-wrap .bar-value {
+  position: absolute;
+  transform: translate(-50%, -115%);
+  white-space: nowrap;
+}
+
+/* The pie and its key. The key is ordinary text beside the picture, not text
+   inside it, because text inside an SVG cannot wrap and a long row-and-column
+   label was being cut off at the edge of the drawing. */
+.chart-with-key {
+  display: flex;
+  gap: var(--space-5);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.chart-with-key > svg { flex: 0 0 auto; width: 260px; height: auto; }
+.chart-key {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: max(12px, 0.84em);
+  color: var(--on-light);
+}
+.chart-key span { display: flex; align-items: flex-start; gap: var(--space-2); line-height: 1.4; }
+.chart-key i {
+  flex: 0 0 auto;
+  width: 11px; height: 11px;
+  border-radius: 3px;
+  margin-top: 3px;
+}
+
+/* The Investigation's return-visit list, and the tag saying what each of its
+   items earned. The words come from the weight in the content file. */
+.collect-lists .col-return h3 { color: var(--warning); }
+.earned-tag {
+  display: inline-block;
+  background: var(--warning-soft);
+  color: #7c4a03;
+  border: 1px solid var(--warning);
+  border-radius: 999px;
+  font-size: max(11px, 0.72em);
+  font-weight: 600;
+  padding: 0 7px;
+  white-space: nowrap;
+}

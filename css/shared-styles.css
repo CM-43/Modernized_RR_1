@@ -1,0 +1,841 @@
+/* ==========================================================================
+   CASEMENTOR SIMULATION — SHARED STYLES
+   ==========================================================================
+
+   The common visual language for CaseMentor / CaseMaster practice
+   simulations. Extracted from the Sea Wolf rebuild (September 2026) so that
+   Redrock, and anything after it, looks like the same product without
+   anybody having to remember what Sea Wolf looked like.
+
+   HOW TO USE THIS FILE
+   --------------------
+   1. Copy it into your simulation's `css/` folder.
+   2. Load it BEFORE your own stylesheet:
+
+          <link rel="stylesheet" href="css/shared-styles.css">
+          <link rel="stylesheet" href="css/app.css">
+
+   3. Put anything specific to your simulation in your own `app.css`. Do not
+      edit this file to make one simulation look different — that is what
+      breaks the family resemblance. If a change genuinely belongs to every
+      simulation, change it here and re-copy it to the others.
+
+   WHAT THIS FILE DEPENDS ON
+   -------------------------
+   Nothing. No images, no web fonts, no other stylesheet, no JavaScript, no
+   internet connection. It uses only the fonts already installed on the
+   visitor's computer. You can open a page that loads only this file and it
+   will render correctly.
+
+   WHAT IS FIXED AND WHAT IS YOURS
+   -------------------------------
+   Read STYLE-GUIDE.md. In short: the colours, the type sizes, the spacing
+   steps and the components below are fixed brand identity and should be
+   used unchanged. Anything describing microbes, seabeds or sites is Sea
+   Wolf's own and is NOT in this file.
+
+   A NOTE ON WHY THE COLOURS LOOK DARKER THAN YOU MIGHT EXPECT
+   -----------------------------------------------------------
+   Several were deliberately darkened during the Sea Wolf build because the
+   lighter versions failed the readability standard the project had already
+   committed to (WCAG AA: ordinary text at least 4.5 times the brightness of
+   its background, larger text and meaningful shapes at least 3 times). The
+   measured ratios are in STYLE-GUIDE.md. Please do not lighten them back.
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1. THE PALETTE, THE TYPE SIZES AND THE SPACING STEPS
+
+   Every colour and size is named once, here. Change it here and it changes
+   everywhere. Do not hunt for raw colour values further down the file.
+   ========================================================================== */
+:root {
+
+  /* --- THE DARK STAGE THE SIMULATION SITS ON ---------------------------- */
+  --page-bg:        #1f2733;   /* behind absolutely everything */
+  --box-bg:         #2b3545;   /* inside the main playing area */
+  --header-bg:      #333f50;   /* the bar across the top */
+  --box-border:     #46536a;   /* edges and dividers on the dark stage */
+
+  /* --- LIGHT SURFACES: cards, columns, popups, the results screen -------
+     Content that has to be read sits on a light surface, never on the dark
+     stage. This is a hard rule, not a preference: it is what keeps text and
+     small pictures legible. */
+  --surface:        #f3f5fa;   /* the normal light card */
+  --surface-plain:  #ffffff;   /* a plainer white, e.g. behind a picture */
+  --surface-line:   #d7dce5;   /* the edge of a light card */
+  --surface-sunken: #e7ebf3;   /* a recess inside a light card */
+
+  /* --- TEXT -------------------------------------------------------------
+     Four text colours, two for each kind of background. "Muted" is for
+     supporting text only, never for anything the candidate must act on. */
+  --on-dark:        #e6e9f0;
+  --on-dark-muted:  #a8b2c4;
+  --on-light:       #1a2230;
+  --on-light-muted: #5b6677;
+
+  /* --- COLOURS THAT CARRY MEANING --------------------------------------
+     Each of these says something. Do not use them decoratively: a candidate
+     who learns that blue means "you can press this" should never meet a
+     blue thing that cannot be pressed. */
+  --accent:         #2563eb;   /* you can press this / this is selected */
+  --accent-dark:    #1d4ed8;   /* the mouse is over it */
+  --accent-soft:    #dbeafe;   /* a pale blue wash behind a selected thing */
+  --success:        #15803d;   /* correct, or a best-possible score */
+  --error:          #dc2626;   /* wrong, or a destructive action */
+  --warning:        #d97706;   /* caution, not yet an error */
+  --warning-soft:   #fef3c7;   /* a pale wash behind a warning */
+  --timer-green:    #4ade80;   /* time remaining */
+  --timer-track:    #2a3344;   /* time already spent */
+
+  /* --- SIZES ------------------------------------------------------------ */
+  --header-height:  56px;
+  --radius:         12px;      /* big things: panels, cards, popups */
+  --radius-small:    8px;      /* small things: buttons, inputs, chips */
+  --panel-width:    18%;       /* the information sidebar */
+  --panel-min:     220px;      /* ...but never narrower than this */
+
+  /* --- TYPE -------------------------------------------------------------
+     One base size that grows a little on a large screen and never falls
+     below 14px. Everything else is expressed relative to it, so the whole
+     interface scales together. */
+  --font: clamp(14px, 1.05vw, 18px);
+
+  /* --- THE SPACING SCALE ------------------------------------------------
+     Six steps. Use these rather than inventing numbers: a layout built from
+     a small fixed set of gaps looks deliberate, and one built from
+     arbitrary numbers looks accidental, even when nobody can say why.
+
+       --space-1   4px   inside a chip; between an icon and its own label
+       --space-2   8px   between closely related items
+       --space-3  12px   the normal gap between things in a row
+       --space-4  14px   padding inside a panel or card
+       --space-5  18px   between blocks of content
+       --space-6  26px   between major sections                            */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3: 12px;
+  --space-4: 14px;
+  --space-5: 18px;
+  --space-6: 26px;
+}
+
+
+/* ==========================================================================
+   2. PAGE BASICS
+   ========================================================================== */
+* { box-sizing: border-box; }
+
+/* ANYTHING MARKED `hidden` MUST REALLY BE HIDDEN. DO NOT REMOVE THIS RULE.
+
+   It is here because of a real fault that cost a morning. A "please enlarge
+   your window" panel was styled `display: flex`, and that beats the
+   browser's own way of hiding an element marked `hidden`. The panel covers
+   the whole screen, so it sat there invisible and swallowed every click on
+   the page — the login button simply did nothing, with no error anywhere.
+
+   Any rule that sets `display` on an element you also hide with `hidden`
+   will reproduce this. The line below closes it off for every element at
+   once, rather than for the one panel that happened to break first. */
+[hidden] { display: none !important; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--page-bg);
+  color: var(--on-dark);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: var(--font);
+  line-height: 1.45;
+  overflow: hidden;              /* the game itself never scrolls */
+  -webkit-font-smoothing: antialiased;
+  /* Numbers line up in columns instead of jiggling as they change — which
+     matters a great deal on a screen with a counting-down clock. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* The results screen is the one screen allowed to scroll. See §9. */
+body.scrolls { overflow: auto; }
+
+h1, h2, h3 { margin: 0; font-weight: 600; }
+
+/* NOTHING IS EVER SMALLER THAN 12px. This is the readability floor for the
+   whole product. `max(12px, …)` is the pattern used throughout: it means
+   "this size, but never below 12px". */
+small, .small { font-size: max(12px, 0.8em); }
+
+
+/* ==========================================================================
+   3. THE HEADER BAR AND THE TIMER
+   ========================================================================== */
+.header-bar {
+  flex: 0 0 auto;
+  height: var(--header-height);
+  background: var(--header-bg);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-4);
+  gap: var(--space-3);
+  position: relative;
+  z-index: 30;
+}
+.header-left, .header-right {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.header-right { justify-content: flex-end; }
+
+/* The clock reading, e.g. "29 min left" or "Time's up". */
+.time-text {
+  font-size: max(12px, 0.78em);
+  color: var(--on-dark);
+  white-space: nowrap;
+}
+
+.time-bar {
+  width: min(34vw, 420px);
+  height: 9px;
+  background: var(--timer-track);
+  border-radius: 999px;
+  overflow: hidden;
+  flex: 0 1 auto;
+  /* THE PALE OUTLINE IS LOAD-BEARING. Keep it.
+
+     No pair of colours exists that contrasts enough with each OTHER and
+     also stands out from the header bar behind them — that was checked by
+     exhaustive search, it is a geometric impossibility, not a failure of
+     imagination. So the outline, not a colour difference, is what makes the
+     full length of the bar visible. Without it a candidate can see the
+     green but cannot tell what fraction of the bar it is, which is the
+     entire point of a timer bar. */
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+.time-bar-fill {
+  height: 100%;
+  background: var(--timer-green);
+  border-radius: 999px;
+  /* Slow enough to read as draining, not as ticking. */
+  transition: width 0.9s linear;
+}
+
+
+/* ==========================================================================
+   4. BUTTONS
+   ========================================================================== */
+
+/* The primary button. One per screen: the thing the candidate is meant to
+   press next. */
+.btn {
+  font-family: inherit;
+  font-size: max(14px, 0.9em);
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-small);
+  padding: 9px 22px;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  transition: background 0.12s ease;
+}
+.btn:hover:not(:disabled)  { background: var(--accent-dark); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+/* Every focusable thing shows a visible ring when reached by keyboard. */
+.btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* A quieter button, for anything that is not the main action — Restart,
+   Legend, Print. Reads as available without competing with the primary. */
+.btn-quiet {
+  font-family: inherit;
+  font-size: max(13px, 0.84em);
+  font-weight: 500;
+  border: 1px solid var(--box-border);
+  border-radius: var(--radius-small);
+  padding: 6px 14px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--on-dark);
+  transition: background 0.12s ease;
+}
+.btn-quiet:hover:not(:disabled) { background: rgba(255, 255, 255, 0.09); }
+.btn-quiet:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* A small round button carrying a + or a −, for adding and removing things.
+
+   WHY THE GLYPH IS DRAWN INSTEAD OF TYPED
+   ---------------------------------------
+   A typed "+" never sits in the middle of a circle. Fonts place those
+   characters on the mathematical axis, which is above the centre of the
+   line box, so the character lands low — and lands differently on Windows,
+   macOS and iOS. Line-height tricks get close and stay wrong.
+
+   So the button contains no text at all. The bar and the upright are two
+   drawn rectangles, each centred by `transform`, which is exact and
+   identical in every browser. `.round-btn.remove` simply omits the upright.
+
+   The glyph is sized as a PERCENTAGE of the circle, not in pixels, so it
+   keeps its proportions when the visitor zooms the browser. In pixels it
+   did not: the bar filled 58% of the circle at 80% zoom and 31% at 150%,
+   so the + visibly changed shape as you zoomed. */
+.round-btn {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0;                  /* hides any character in the markup */
+  line-height: 0;
+  display: block;
+  transition: background 0.12s ease, transform 0.08s ease;
+}
+.round-btn::before {             /* the horizontal bar — on both + and − */
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 46%; height: 8%;
+  min-height: 2px;
+  border-radius: 1px;
+  background: #fff;
+}
+.round-btn::after {              /* the upright — only on + */
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8%; height: 46%;
+  min-width: 2px;
+  border-radius: 1px;
+  background: #fff;
+}
+.round-btn.remove::after { display: none; }
+.round-btn.remove          { background: var(--error); }
+.round-btn.remove:hover:not(:disabled) { background: #b91c1c; }
+.round-btn:hover:not(:disabled)  { background: var(--accent-dark); }
+.round-btn:active:not(:disabled) { transform: scale(0.94); }
+.round-btn:disabled { opacity: 0.32; cursor: not-allowed; }
+.round-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+
+/* ==========================================================================
+   5. THE MAIN BOX, THE WORKSPACE AND THE INFORMATION SIDEBAR
+   ========================================================================== */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--space-4);
+  display: flex;
+}
+
+.main-box {
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--box-bg);
+  border: 1px solid var(--box-border);
+  border-radius: var(--radius);
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Everything except the sidebar. */
+.workspace {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-4) 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* THE INFORMATION SIDEBAR — the right-hand strip that says what the current
+   task is asking for. It is always present, always in the same place, and
+   always the same width, so a candidate under time pressure never has to
+   look for it. */
+.side {
+  flex: 0 0 var(--panel-width);
+  min-width: var(--panel-min);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border-left: 1px solid var(--box-border);
+  min-height: 0;
+}
+.side-card {
+  background: var(--surface);
+  color: var(--on-light);
+  border-radius: var(--radius-small);
+  padding: var(--space-3) var(--space-4);
+}
+.side-card h3 {
+  font-size: max(13px, 0.86em);
+  margin-bottom: var(--space-1);
+}
+.side-card .side-group {
+  font-size: max(12px, 0.8em);
+  color: var(--on-light-muted);
+  font-weight: 600;
+  margin-top: var(--space-2);
+}
+
+
+/* ==========================================================================
+   6. LIGHT CARDS
+
+   The general-purpose container for content a candidate must read. Always
+   light, whatever sits behind it.
+   ========================================================================== */
+.card {
+  background: var(--surface);
+  color: var(--on-light);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  position: relative;
+}
+.card-title {
+  font-weight: 700;
+  font-size: max(14px, 0.95em);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A plain white recess inside a card, e.g. behind a picture. */
+.card-well {
+  background: var(--surface-plain);
+  border-radius: var(--radius-small);
+  padding: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-well img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* A COMPACT CARD: a title line with a small round button in the corner, and
+   a row of small facts beneath it.
+
+   THREE THINGS HERE ARE LOAD-BEARING AND WERE EACH GOT WRONG FIRST TIME.
+   They are worth understanding before changing anything.
+
+   (a) The space above and below the two rows is FIXED, and the gap between
+       them takes whatever height is left. Done the other way round — the
+       rows centred as a block — the card put its spare height at the top
+       and bottom edges and left the two rows almost touching.
+
+   (b) The facts row is LEFT-ALIGNED with a capped gap. It must not use
+       `space-between`: that has no ceiling, so on a large monitor it keeps
+       stretching until the items sit at opposite ends of the card and stop
+       reading as one row.
+
+   (c) The small round button sits in the top-right corner, and whatever
+       sits at the right-hand end of the facts row MUST NOT be pushed to the
+       card's right edge. The empty space left there is what sits underneath
+       the button and is the only thing keeping the two apart. Adding
+       `margin-left: auto` to that last item reintroduces a collision that
+       took three attempts to remove. */
+.compact-card {
+  background: var(--surface);
+  color: var(--on-light);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius-small);
+  padding: 7px var(--space-2);
+  position: relative;
+  container-type: inline-size;   /* see the note on cqw in §11 */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;   /* (a) */
+  overflow: hidden;
+}
+.compact-card .compact-title {
+  font-size: max(14px, 0.95em);
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Room for the corner button, but only on cards that actually have one. */
+.compact-card:has(.round-btn) .compact-title { padding-right: 32px; }
+.compact-card .round-btn {
+  position: absolute;
+  top: 7px;
+  right: var(--space-2);
+}
+.compact-facts {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;                      /* (b) */
+  gap: clamp(2px, calc(13cqw - 12px), 22px);        /* (b) capped at 22px */
+  font-size: max(12px, 0.8em);
+  min-width: 0;
+  overflow: hidden;
+  padding-right: clamp(2px, 4cqw, 14px);            /* (c) */
+}
+
+/* AN ICON AND ITS OWN VALUE ARE ONE OBJECT, NOT TWO.
+
+   This is the single most transferable lesson from the Sea Wolf build.
+   Before it, the gap from an icon to its own number and from that number to
+   the NEXT icon were identical, so every number looked equally attached to
+   the icon on either side of it. A row of six items that should have read
+   as three pairs read as six loose things.
+
+   Wrap each icon with its value. Space the GROUPS; never space the parts
+   inside a group. The gap below is expressed as a fraction of the gap
+   between groups so the relationship holds at every window size — set
+   independently, it drifted larger than the between-groups gap on a narrow
+   card and the pairing silently inverted. */
+.fact-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: max(1px, calc(clamp(2px, calc(13cqw - 12px), 22px) * 0.45));
+  flex: 0 0 auto;
+}
+.fact-pair .value { font-weight: 600; }
+
+
+/* ==========================================================================
+   7. POPUPS AND MODAL DIALOGS
+   ========================================================================== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 17, 26, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fade-in 150ms ease;
+}
+
+/* EVERY POPUP IS THE SAME SIZE, WHATEVER IT SAYS.
+
+   This is a deliberate product decision, not an oversight, and it comes
+   from the client: a popup that changes size between steps makes the eye
+   re-find the button every time. The size is therefore fixed here and the
+   text is fitted to it, never the other way round.
+
+   The consequence to accept: if you write a message too long for one line,
+   widen this ONE number so every popup widens together. Do not give an
+   individual popup a width of its own — that is the rule this exists to
+   enforce. */
+.modal {
+  background: linear-gradient(180deg, #ffffff 0%, var(--surface) 100%);
+  color: var(--on-light);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  padding: var(--space-6) 32px 22px;
+  width: min(600px, 86vw);
+  height: 216px;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+  animation: modal-rise 160ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* `stretch`, NOT `center`.
+
+   A flex column with `align-items: center` shrink-wraps its children to
+   their own content width — so the heading never receives the popup's full
+   width and wraps early, no matter how wide you make the popup. That cost
+   an hour and two wrong diagnoses. The heading is centred by `text-align`
+   below instead, which centres the words without narrowing the box. */
+.modal-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 0;
+}
+.modal h2 {
+  font-size: clamp(19px, 1.65vw, 25px);
+  font-weight: 600;
+  line-height: 1.28;
+  letter-spacing: -0.01em;
+  text-align: center;
+}
+.modal p {
+  color: var(--on-light-muted);
+  font-size: max(13px, 0.85em);
+  margin: 0;
+  text-align: center;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding-top: 16px;
+}
+
+@keyframes fade-in   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modal-rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* If the visitor has asked their system to reduce motion, respect it. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+
+/* ==========================================================================
+   8. FORM INPUTS
+   ========================================================================== */
+.field { margin-bottom: var(--space-4); }
+.field label {
+  display: block;
+  font-size: max(13px, 0.84em);
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+.field input {
+  width: 100%;
+  padding: 10px var(--space-3);
+  font-size: max(14px, 0.92em);
+  font-family: inherit;
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius-small);
+  background: var(--surface-plain);
+  color: var(--on-light);
+}
+.field input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  border-color: var(--accent);
+}
+.form-error {
+  color: var(--error);
+  font-size: max(13px, 0.84em);
+  min-height: 20px;
+  margin-bottom: var(--space-2);
+}
+
+/* A row the candidate chooses by clicking anywhere on it, not just on the
+   little circle. Bigger targets, fewer mis-clicks under time pressure. */
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 10px;
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius-small);
+  background: var(--surface-plain);
+  cursor: pointer;
+}
+.choice:hover { border-color: var(--accent); }
+.choice.is-chosen {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.choice .label { flex: 1 1 auto; }
+
+
+/* ==========================================================================
+   9. THE RESULTS SCREEN
+
+   The one screen that is taller than the window, and the only one allowed
+   to scroll.
+   ========================================================================== */
+
+/* `100vh`, NOT `100%`.
+
+   `100%` means 100% of the parent, and the parent is only as tall as the
+   window — so the light panel stopped after one screenful and everything
+   below it showed the dark page behind. That produced a dark band down both
+   margins that took three attempts to diagnose, twice on the wrong page.
+   `100vh` plus the panel's own content height means it always covers
+   everything.
+
+   The two rules underneath it are belt and braces: while the results are
+   showing, the page itself is light, so even if the panel ever stopped
+   short again there is nothing dark to show through. */
+.results {
+  background: var(--surface);
+  color: var(--on-light);
+  min-height: 100vh;
+  padding: 22px clamp(14px, 3vw, 40px) 60px;
+}
+body.scrolls,
+body.scrolls #app { background: var(--surface); }
+body.scrolls #app { height: auto; min-height: 100%; }
+
+.results-inner { max-width: 1180px; margin: 0 auto; }
+.results-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+.results-top h1 { font-size: clamp(20px, 2vw, 28px); }
+.results-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+/* The score tiles across the top. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.tile {
+  background: var(--surface-plain);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius);
+  padding: 16px var(--space-5);
+}
+.tile .tile-name {
+  font-size: max(13px, 0.86em);
+  color: var(--on-light-muted);
+  margin-bottom: var(--space-1);
+}
+.tile .tile-score {
+  font-size: clamp(28px, 3.2vw, 40px);
+  font-weight: 700;
+  line-height: 1.05;
+}
+/* ALWAYS show what the best possible score was, so a score like 80% is not
+   misread as failure when 80% was the maximum available. */
+.tile .tile-best {
+  font-size: max(13px, 0.84em);
+  color: var(--on-light-muted);
+  margin-top: 3px;
+}
+.tile.is-best .tile-score { color: var(--success); }
+
+.summary-line {
+  font-size: max(14px, 0.9em);
+  color: var(--on-light-muted);
+  margin-bottom: var(--space-6);
+}
+
+/* One marked answer. Wrong answers carry their reason; right ones keep it
+   hidden until asked for, so the page is not a wall of text. */
+.mark-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--surface-line);
+}
+.mark-row.is-wrong { background: #fef2f6; }
+.mark-icon        { flex: 0 0 auto; font-weight: 700; }
+.mark-row.is-right .mark-icon { color: var(--success); }
+.mark-row.is-wrong .mark-icon { color: var(--error); }
+.mark-reason {
+  color: var(--on-light-muted);
+  font-size: max(13px, 0.86em);
+}
+
+/* A block of content that folds away, e.g. one site's detailed results. */
+.block {
+  background: var(--surface-plain);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius);
+  padding: var(--space-5) 22px 22px;
+  margin-bottom: var(--space-4);
+}
+.block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+.block-head h2 { font-size: max(17px, 1.1em); }
+
+
+/* ==========================================================================
+   10. THE "PLEASE ENLARGE YOUR WINDOW" PANEL
+
+   Below the minimum supported size the simulation stops rather than
+   rendering a broken layout. 900 x 540 is the Sea Wolf floor; keep it
+   unless your own layout genuinely needs more.
+   ========================================================================== */
+.too-small {
+  position: fixed;
+  inset: 0;
+  background: var(--page-bg);
+  color: var(--on-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+  z-index: 200;
+  font-size: max(15px, 1em);
+}
+
+
+/* ==========================================================================
+   11. PRINTING
+   ========================================================================== */
+@media print {
+  html, body { background: #fff !important; }
+  body { overflow: visible; }
+  .header-bar, .results-actions, .btn, .btn-quiet, .round-btn,
+  .modal-backdrop { display: none !important; }
+  .results { background: #fff; padding: 0; }
+  .block { border-color: #bbb; break-inside: avoid; }
+}
+
+
+/* ==========================================================================
+   12. TWO MEASURING RULES WORTH KNOWING BEFORE YOU EXTEND THIS FILE
+   ==========================================================================
+
+   MEASURE AGAINST THE CONTAINER, NOT THE WINDOW.
+   Several rules above use `cqw` ("container query width" — a percentage of
+   the element's own container) rather than `vw` (a percentage of the
+   window). They are not interchangeable. A layout with a fixed-width
+   sidebar shrinks its cards FASTER than the window shrinks, so a
+   window-based measure keeps handing out generous spacing long after the
+   card can afford it. Any element using `cqw` inside it must declare
+   `container-type: inline-size`, as `.compact-card` does.
+
+   A PERCENTAGE IN A GAP IS MULTIPLIED BY THE NUMBER OF GAPS.
+   A row of seven items has six gaps. A gap that looks modest on its own
+   becomes the largest single item in the row once multiplied. Work out the
+   total before choosing the number: at one point six gaps of 3.4px came to
+   20px on a row only 105px wide, and pushed the contents off the card.
+   ========================================================================== */

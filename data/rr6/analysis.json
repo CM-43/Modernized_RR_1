@@ -1,0 +1,106 @@
+{
+  "directions": "",
+  "review_text": "Please review if the information in the Research Journal is sufficient. If needed you can go back to the Investigation to collect additional information. You will be able to use only the information in the Research Journal in the next phase.",
+  "questions": [
+    {
+      "number": 1,
+      "text": "What is the new kill rate for Dashed Coyotes in Mistveil and Bluebell Woods given the additional data. Round your answer to the closest 1 decimal point.",
+      "boxes": [
+        {
+          "id": "q1_mistveil",
+          "label": "Mistveil Woods",
+          "answer": 0.4,
+          "accept": {
+            "decimals": 1
+          },
+          "explanation": "From Exhibit 2, Mistveil Woods had 30 prey killed over 17 days by a pack of 5. With the additional data: 60 killed (extra 30), 25 days (extra 8), pack of 6 (undercounted by 1). New kill rate = total prey killed ÷ (days tracked × pack size) = 60 ÷ (25 × 6) = 60 ÷ 150 = 0.4."
+        },
+        {
+          "id": "q1_bluebell",
+          "label": "Bluebell Woods",
+          "answer": 0.3,
+          "accept": {
+            "decimals": 1
+          },
+          "explanation": "From Exhibit 2, Bluebell Woods had 40 prey killed over 12 days by a pack of 11. With the additional data: 66 killed (extra 26), 20 days (extra 8), pack unchanged at 11. New kill rate = 66 ÷ (20 × 11) = 66 ÷ 220 = 0.3."
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "text": "What is the total number of prey killed per year (365 days) by Dashed Coyotes in Mistveil and Bluebell Woods? Assume that the four primary prey make up all of Dashed Coyotes kills. Round up your answer to the closest whole number.",
+      "boxes": [
+        {
+          "id": "q2_mistveil",
+          "label": "Mistveil Woods",
+          "answer": 876,
+          "accept": {
+            "decimals": 0
+          },
+          "explanation": "Prey killed per year = new kill rate × 365 days × new pack size = 0.4 × 365 × 6 = 876."
+        },
+        {
+          "id": "q2_bluebell",
+          "label": "Bluebell Woods",
+          "answer": 1205,
+          "accept": {
+            "decimals": 0
+          },
+          "explanation": "0.3 × 365 × 11 = 1,204.5, which rounds up to 1,205."
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "text": "What is the average death rate due to illness and disease, taking into considering all four primary prey, in Mistveil and Bluebell Woods? Round your answer to the closest whole percentage point.",
+      "boxes": [
+        {
+          "id": "q3_mistveil",
+          "label": "Mistveil Woods",
+          "unit": "%",
+          "answer": 9,
+          "accept": {
+            "decimals": 0
+          },
+          "explanation": "Total prey in Mistveil Woods = 550 + 820 + 1,200 + 430 = 3,000. Deaths from illness = 550×10% + 820×15% + 1,200×5% + 430×10% = 55 + 123 + 60 + 43 = 281. Weighted death rate = 281 ÷ 3,000 = 0.094 ≈ 9%."
+        },
+        {
+          "id": "q3_bluebell",
+          "label": "Bluebell Woods",
+          "unit": "%",
+          "answer": 10,
+          "accept": {
+            "decimals": 0
+          },
+          "explanation": "Total prey in Bluebell Woods = 700 + 1,080 + 1,360 + 610 = 3,750. Deaths from illness = 70 + 162 + 68 + 61 = 361. Weighted death rate = 361 ÷ 3,750 = 0.096 ≈ 10%."
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "text": "What percentage of yearly prey lost in the Mistveil and Bluebell Woods are due to Dashed Coyotes? Round your answer to the closest whole percentage point.",
+      "boxes": [
+        {
+          "id": "q4_mistveil",
+          "label": "Mistveil Woods",
+          "unit": "%",
+          "answer": 76,
+          "accept": {
+            "decimals": 0
+          },
+          "explanation": "Total deaths in Mistveil Woods = coyote kills 876 + illness deaths 281 = 1,157. Share due to coyotes = 876 ÷ 1,157 = 0.757 ≈ 76%."
+        },
+        {
+          "id": "q4_bluebell",
+          "label": "Bluebell Woods",
+          "unit": "%",
+          "answer": 77,
+          "accept": {
+            "decimals": 0
+          },
+          "explanation": "Total deaths in Bluebell Woods = 1,205 + 361 = 1,566. Share due to coyotes = 1,205 ÷ 1,566 = 0.769 ≈ 77%."
+        }
+      ]
+    }
+  ]
+}

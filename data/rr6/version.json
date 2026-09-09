@@ -1,0 +1,88 @@
+{
+  "id": "rr6",
+  "title": "Redrock Study — Simulation 6",
+  "scenario": "Aldarin Island — Dashed Coyotes",
+  "time_limit_minutes": 35,
+  "case_count": 6,
+  "return_visit_weight": 0.5,
+  "phases": [
+    "investigation",
+    "analysis",
+    "report",
+    "cases"
+  ],
+  "labels": {
+    "cases_tab": "Cases",
+    "investigation_tab": "Investigation",
+    "analysis_tab": "Analysis",
+    "report_tab": "Report",
+    "review_tab": "Review",
+    "written_tab": "Written",
+    "graph_tab": "Graph",
+    "visual_tab": "Visual",
+    "cases_menu": "Case Questions",
+    "journal_mark_hint": "Mark (!) for important items"
+  },
+  "buttons": {
+    "complete_investigation": "Complete Investigation",
+    "next_question": "Next Question",
+    "review": "Review",
+    "conclude": "Conclude",
+    "next_section": "Next Question",
+    "complete_report": "Complete report",
+    "next_case": "Next Case",
+    "finish": "Finish Study"
+  },
+  "popups": {
+    "to_analysis": {
+      "title": "Do you want to move forward?",
+      "text": "If you have collected all the relevant information you can now move to the Analysis phase.",
+      "back": "Back to Investigation",
+      "go": "Move to Analysis"
+    },
+    "analysis_tutorial": {
+      "title": "Tutorial",
+      "text": "Please get ready for the next stage of the assessment. You will have to answer a few questions related to your research.",
+      "go": "Continue"
+    },
+    "next_question": {
+      "title": "Do you want to move to the next question?",
+      "text": "You won't be able to change your answer",
+      "back": "Back to the question",
+      "go": "Move forward"
+    },
+    "to_report": {
+      "title": "Do you want to move to the Report?",
+      "text": "You won't be able to change your answer",
+      "back": "Back to the question",
+      "go": "Move to Report"
+    },
+    "next_section": {
+      "title": "Do you want to move to the next section?",
+      "text": "You won't be able to change your answer",
+      "back": "Back to the question",
+      "go": "Move to next section"
+    },
+    "cases_tutorial": {
+      "title": "Tutorial",
+      "text": "Please get ready for the next stage of the assessment. You will have to answer a few cases to complete your research.",
+      "go": "Continue"
+    },
+    "next_case": {
+      "title": "Do you want to move to the next question?",
+      "text": "You won't be able to change your answer",
+      "back": "Back to question",
+      "go": "Move forward"
+    },
+    "restart": {
+      "title": "Restart the simulation?",
+      "text": "Your answers will be lost.",
+      "back": "Cancel",
+      "go": "Restart"
+    }
+  },
+  "warnings": {
+    "title": "{n} Minute Warning",
+    "text": "{n} minutes remain to finish your work for both the study and the cases"
+  }
+}

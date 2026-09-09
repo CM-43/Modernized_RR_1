@@ -1,0 +1,490 @@
+{
+  "directions": "Drag only the relevant data into your Research Journal for the study's Objective.",
+  "tabs": [
+    {
+      "id": "objective",
+      "label": "Objective"
+    },
+    {
+      "id": "study",
+      "label": "Study"
+    },
+    {
+      "id": "exhibit1",
+      "label": "Exhibit 1"
+    },
+    {
+      "id": "exhibit2",
+      "label": "Exhibit 2"
+    },
+    {
+      "id": "exhibit3",
+      "label": "Exhibit 3"
+    }
+  ],
+  "sections": [
+    {
+      "id": "objective",
+      "heading": "Research Information",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "The Aldarin Island is home to a diverse range of animals, the vast majority of which are herbivores. For years, these herbivores have thrived due to the minimal presence of predators and the Island's isolation causing it to be untouched by human development."
+        },
+        {
+          "kind": "text",
+          "text": "However, [[coyote_intro]], a pack of Dashed Coyotes were introduced to the Island through unknown means. This has disrupted the ecological equilibrium of the Island, and the herbivore population has been declining year-by-year since."
+        },
+        {
+          "kind": "text",
+          "text": "Your team of ecologists have been assigned to study the population dynamics of various species on the Island."
+        },
+        {
+          "kind": "heading",
+          "text": "Objective"
+        },
+        {
+          "kind": "text",
+          "text": "[[objective_line]]"
+        }
+      ]
+    },
+    {
+      "id": "study",
+      "heading": "Study Information",
+      "blocks": [
+        {
+          "kind": "text",
+          "text": "The four main prey for Dashed Coyotes were tracked and their population, split across the four areas of the Aldarin Island, are as follows:"
+        }
+      ]
+    },
+    {
+      "id": "exhibit1",
+      "heading": "Exhibit 1: Primary Prey Population Across Zones on Aldarin Island",
+      "blocks": [
+        {
+          "kind": "table",
+          "header": [
+            "Zones",
+            "Marmot",
+            "Chinchilla",
+            "Hare",
+            "Gopher"
+          ],
+          "rows": [
+            [
+              "Teklan Hills",
+              "[[ex1_1_1]]",
+              "[[ex1_1_2]]",
+              "[[ex1_1_3]]",
+              "[[ex1_1_4]]"
+            ],
+            [
+              "Mistveil Woods",
+              "[[ex1_2_1]]",
+              "[[ex1_2_2]]",
+              "[[ex1_2_3]]",
+              "[[ex1_2_4]]"
+            ],
+            [
+              "Bluebell Woods",
+              "[[ex1_3_1]]",
+              "[[ex1_3_2]]",
+              "[[ex1_3_3]]",
+              "[[ex1_3_4]]"
+            ],
+            [
+              "Rosefield",
+              "[[ex1_4_1]]",
+              "[[ex1_4_2]]",
+              "[[ex1_4_3]]",
+              "[[ex1_4_4]]"
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "While Coyotes do hunt other animals, they make up only [[other_prey_diet]]. To further understand how the Coyotes are impacting the population of the prey above, your team begun charting the packs active in each zone. The following are the results:"
+        }
+      ]
+    },
+    {
+      "id": "exhibit2",
+      "heading": "Exhibit 2: Dashed Coyote Hunting Behavior Across Zones on Aldarin Island",
+      "blocks": [
+        {
+          "kind": "table",
+          "header": [
+            "Zones",
+            "Kill Rate",
+            "Total Prey Killed",
+            "Days Tracked",
+            "Pack Size"
+          ],
+          "rows": [
+            [
+              "Teklan Hills",
+              "[[ex2_1_1]]",
+              "[[ex2_1_2]]",
+              "[[ex2_1_3]]",
+              "[[ex2_1_4]]"
+            ],
+            [
+              "Mistveil Woods",
+              "[[ex2_2_1]]",
+              "[[ex2_2_2]]",
+              "[[ex2_2_3]]",
+              "[[ex2_2_4]]"
+            ],
+            [
+              "Bluebell Woods",
+              "[[ex2_3_1]]",
+              "[[ex2_3_2]]",
+              "[[ex2_3_3]]",
+              "[[ex2_3_4]]"
+            ],
+            [
+              "Rosefield",
+              "[[ex2_4_1]]",
+              "[[ex2_4_2]]",
+              "[[ex2_4_3]]",
+              "[[ex2_4_4]]"
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Note that kill rates are calculated as [[kill_rate_def]]. It can be assumed that [[hunting_behavior]]. [[year_days]]. The calculated kill rates and the prey populations are used to monitor the predator/prey balance over the year."
+        },
+        {
+          "kind": "text",
+          "text": "Since the data in Exhibit 2 was collected, your team was able to track each pack for an [[additional_tracking]]. The following additional data was noted:"
+        },
+        {
+          "kind": "list",
+          "items": [
+            "[[additional_data_1]]",
+            "[[additional_data_2]]",
+            "[[additional_data_3]]",
+            "[[additional_data_4]]",
+            "[[additional_data_5]]",
+            "[[additional_data_6]]"
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "In addition to being hunted by Coyotes, the tracked prey can also lose their population to illness and disease; the estimated death rates are as follows:"
+        }
+      ]
+    },
+    {
+      "id": "exhibit3",
+      "heading": "Exhibit 3: Estimated Death Rate from Illness and Disease",
+      "blocks": [
+        {
+          "kind": "table",
+          "header": [
+            "Species",
+            "Death Rate (% of starting population)"
+          ],
+          "rows": [
+            [
+              "Marmot",
+              "[[ex3_1]]"
+            ],
+            [
+              "Chinchilla",
+              "[[ex3_2]]"
+            ],
+            [
+              "Hare",
+              "[[ex3_3]]"
+            ],
+            [
+              "Gopher",
+              "[[ex3_4]]"
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "items": {
+    "coyote_intro": {
+      "label": "Introduction of Dashed Coyotes",
+      "text": "5 years ago",
+      "required": false
+    },
+    "objective_line": {
+      "label": "Objective",
+      "text": "Review the data and identify the percentage of prey death in Mistveil and Bluebell Woods due to Dashed Coyotes.",
+      "required": true,
+      "needed_for": "Every question — it defines which two zones matter"
+    },
+    "other_prey_diet": {
+      "label": "Other preys' contribution towards Dashed Coyote diets",
+      "text": "an insignificant portion of their diets",
+      "required": true,
+      "needed_for": "Question 2 — the four prey make up all kills"
+    },
+    "kill_rate_def": {
+      "label": "Definition of kill rate",
+      "text": "number of the four mapped prey killed per day per Coyote",
+      "required": true,
+      "needed_for": "Question 1"
+    },
+    "hunting_behavior": {
+      "label": "Dashed Coyote hunting behavior",
+      "text": "the four species are killed proportionately to their population",
+      "required": true,
+      "needed_for": "Questions 3 and 4"
+    },
+    "year_days": {
+      "label": "Kill rate over the year",
+      "text": "Once calculated, the kill rate is expected to remain constant throughout the year (365 days)",
+      "required": true,
+      "needed_for": "Question 2"
+    },
+    "additional_tracking": {
+      "label": "Additional Dashed Coyote tracking time",
+      "text": "additional 8 days",
+      "required": true,
+      "needed_for": "Question 1"
+    },
+    "additional_data_1": {
+      "label": "Additional data #1",
+      "text": "Teklan Hills pack size reduced by 1",
+      "required": false
+    },
+    "additional_data_2": {
+      "label": "Additional data #2",
+      "text": "Teklan Hills prey killed increased by 28",
+      "required": false
+    },
+    "additional_data_3": {
+      "label": "Additional data #3",
+      "text": "Mistveil Woods pack size was undercounted by 1",
+      "required": true,
+      "needed_for": "Question 1"
+    },
+    "additional_data_4": {
+      "label": "Additional data #4",
+      "text": "Mistveil Woods prey killed increased by 30",
+      "required": true,
+      "needed_for": "Question 1"
+    },
+    "additional_data_5": {
+      "label": "Additional data #5",
+      "text": "Bluebell Woods prey killed increased by 26",
+      "required": true,
+      "needed_for": "Question 1"
+    },
+    "additional_data_6": {
+      "label": "Additional data #6",
+      "text": "Rosefield prey killed increased by 33",
+      "required": false
+    },
+    "ex1_1_1": {
+      "label": "Marmot population in Teklan Hills",
+      "text": "600",
+      "required": false
+    },
+    "ex1_1_2": {
+      "label": "Chinchilla population in Teklan Hills",
+      "text": "570",
+      "required": false
+    },
+    "ex1_1_3": {
+      "label": "Hare population in Teklan Hills",
+      "text": "620",
+      "required": false
+    },
+    "ex1_1_4": {
+      "label": "Gopher population in Teklan Hills",
+      "text": "800",
+      "required": false
+    },
+    "ex1_2_1": {
+      "label": "Marmot population in Mistveil Woods",
+      "text": "550",
+      "required": true,
+      "needed_for": "Question 3"
+    },
+    "ex1_2_2": {
+      "label": "Chinchilla population in Mistveil Woods",
+      "text": "820",
+      "required": true,
+      "needed_for": "Question 3"
+    },
+    "ex1_2_3": {
+      "label": "Hare population in Mistveil Woods",
+      "text": "1,200",
+      "required": true,
+      "needed_for": "Question 3"
+    },
+    "ex1_2_4": {
+      "label": "Gopher population in Mistveil Woods",
+      "text": "430",
+      "required": true,
+      "needed_for": "Question 3"
+    },
+    "ex1_3_1": {
+      "label": "Marmot population in Bluebell Woods",
+      "text": "700",
+      "required": true,
+      "needed_for": "Question 3"
+    },
+    "ex1_3_2": {
+      "label": "Chinchilla population in Bluebell Woods",
+      "text": "1,080",
+      "required": true,
+      "needed_for": "Question 3"
+    },
+    "ex1_3_3": {
+      "label": "Hare population in Bluebell Woods",
+      "text": "1,360",
+      "required": true,
+      "needed_for": "Question 3"
+    },
+    "ex1_3_4": {
+      "label": "Gopher population in Bluebell Woods",
+      "text": "610",
+      "required": true,
+      "needed_for": "Question 3"
+    },
+    "ex1_4_1": {
+      "label": "Marmot population in Rosefield",
+      "text": "710",
+      "required": false
+    },
+    "ex1_4_2": {
+      "label": "Chinchilla population in Rosefield",
+      "text": "870",
+      "required": false
+    },
+    "ex1_4_3": {
+      "label": "Hare population in Rosefield",
+      "text": "430",
+      "required": false
+    },
+    "ex1_4_4": {
+      "label": "Gopher population in Rosefield",
+      "text": "1,000",
+      "required": false
+    },
+    "ex2_1_1": {
+      "label": "Kill rate in Teklan Hills",
+      "text": "0.31",
+      "required": false
+    },
+    "ex2_1_2": {
+      "label": "Total prey killed in Teklan Hills",
+      "text": "28",
+      "required": false
+    },
+    "ex2_1_3": {
+      "label": "Days tracked in Teklan Hills",
+      "text": "10",
+      "required": false
+    },
+    "ex2_1_4": {
+      "label": "Pack size in Teklan Hills",
+      "text": "9",
+      "required": false
+    },
+    "ex2_2_1": {
+      "label": "Kill rate in Mistveil Woods",
+      "text": "0.35",
+      "required": true,
+      "needed_for": "Question 1 (and the Report's kill-rate comparison)"
+    },
+    "ex2_2_2": {
+      "label": "Total prey killed in Mistveil Woods",
+      "text": "30",
+      "required": true,
+      "needed_for": "Question 1 (and the Report's kill-rate comparison)"
+    },
+    "ex2_2_3": {
+      "label": "Days tracked in Mistveil Woods",
+      "text": "17",
+      "required": true,
+      "needed_for": "Question 1 (and the Report's kill-rate comparison)"
+    },
+    "ex2_2_4": {
+      "label": "Pack size in Mistveil Woods",
+      "text": "5",
+      "required": true,
+      "needed_for": "Question 1 (and the Report's kill-rate comparison)"
+    },
+    "ex2_3_1": {
+      "label": "Kill rate in Bluebell Woods",
+      "text": "0.30",
+      "required": true,
+      "needed_for": "Question 1 (and the Report's kill-rate comparison)"
+    },
+    "ex2_3_2": {
+      "label": "Total prey killed in Bluebell Woods",
+      "text": "40",
+      "required": true,
+      "needed_for": "Question 1 (and the Report's kill-rate comparison)"
+    },
+    "ex2_3_3": {
+      "label": "Days tracked in Bluebell Woods",
+      "text": "12",
+      "required": true,
+      "needed_for": "Question 1 (and the Report's kill-rate comparison)"
+    },
+    "ex2_3_4": {
+      "label": "Pack size in Bluebell Woods",
+      "text": "11",
+      "required": true,
+      "needed_for": "Question 1 (and the Report's kill-rate comparison)"
+    },
+    "ex2_4_1": {
+      "label": "Kill rate in Rosefield",
+      "text": "0.42",
+      "required": false
+    },
+    "ex2_4_2": {
+      "label": "Total prey killed in Rosefield",
+      "text": "30",
+      "required": false
+    },
+    "ex2_4_3": {
+      "label": "Days tracked in Rosefield",
+      "text": "9",
+      "required": false
+    },
+    "ex2_4_4": {
+      "label": "Pack size in Rosefield",
+      "text": "8",
+      "required": false
+    },
+    "ex3_1": {
+      "label": "Marmot death rate due to illness and disease (%)",
+      "text": "10",
+      "required": true,
+      "needed_for": "Question 3"
+    },
+    "ex3_2": {
+      "label": "Chinchilla death rate due to illness and disease (%)",
+      "text": "15",
+      "required": true,
+      "needed_for": "Question 3"
+    },
+    "ex3_3": {
+      "label": "Hare death rate due to illness and disease (%)",
+      "text": "5",
+      "required": true,
+      "needed_for": "Question 3"
+    },
+    "ex3_4": {
+      "label": "Gopher death rate due to illness and disease (%)",
+      "text": "10",
+      "required": true,
+      "needed_for": "Question 3"
+    }
+  },
+  "explanation": "Only the two zones named in the objective — Mistveil Woods and Bluebell Woods — matter. Everything about Teklan Hills and Rosefield is a distractor, and so is the introduction date of the coyotes."
+}

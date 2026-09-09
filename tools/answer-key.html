@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Answer key</title>
+<link rel="stylesheet" href="../css/shared-styles.css">
+<style>
+  /* This page is a printed document, not part of the simulation. */
+  body { overflow: auto; background: var(--surface); color: var(--on-light); }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 26px clamp(14px, 3vw, 40px) 80px; }
+  h1 { font-size: clamp(22px, 2.1vw, 30px); }
+  .sub { color: var(--on-light-muted); margin: 4px 0 var(--space-6); font-size: max(14px, 0.92em); }
+  h2 {
+    font-size: max(18px, 1.2em);
+    margin: var(--space-6) 0 var(--space-3);
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--surface-line);
+  }
+  h3 { font-size: max(15px, 1em); margin: var(--space-5) 0 var(--space-2); }
+  h4 { font-size: max(13px, 0.88em); margin: var(--space-4) 0 var(--space-2);
+       color: var(--on-light-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .item {
+    background: var(--surface-plain);
+    border: 1px solid var(--surface-line);
+    border-radius: var(--radius-small);
+    padding: 9px var(--space-4);
+    margin-bottom: 6px;
+  }
+  .item .n { color: var(--on-light-muted); font-size: max(12px, 0.8em); }
+  .item .a { font-weight: 700; }
+  .item .why { color: var(--on-light-muted); font-size: max(12px, 0.84em); margin-top: 4px;
+               line-height: 1.55; }
+  .q { background: var(--surface-plain); border: 1px solid var(--surface-line);
+       border-radius: var(--radius); padding: var(--space-4) var(--space-5);
+       margin-bottom: var(--space-4); }
+  .q .qtext { font-size: max(14px, 0.92em); margin-bottom: var(--space-3); }
+  .totals { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-5); }
+  .totals div { background: var(--surface-plain); border: 1px solid var(--surface-line);
+                border-radius: var(--radius-small); padding: 8px var(--space-4);
+                font-size: max(13px, 0.88em); }
+  .totals b { font-size: max(16px, 1.1em); }
+  code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em;
+         background: var(--surface-sunken); padding: 1px 5px; border-radius: 4px; }
+  .tpl { background: var(--surface-sunken); border-radius: var(--radius-small);
+         padding: var(--space-3) var(--space-4); font-size: max(13px, 0.9em);
+         line-height: 1.9; white-space: pre-wrap; margin-bottom: var(--space-3); }
+  @media print {
+    .wrap { max-width: none; padding: 0; }
+    .q, .item { break-inside: avoid; }
+  }
+</style>
+</head>
+<body class="scrolls">
+<div class="wrap" id="out">Loading…</div>
+
+<script src="../js/marking.js"></script>
+<script src="../js/content.js"></script>
+<script>
+'use strict';
+
+function esc(t) {
+  return String(t === null || t === undefined ? '' : t)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+/* The same two content conventions the simulation itself draws: a line break
+   is a line break, and ^{…} is raised (2^{7} → 2 with a small 7). Escaped
+   first, so the only tags that can appear are the two put here. */
+function nl(t) {
+  return esc(t)
+    .replace(/\^\{([^}]*)\}/g, '<sup>$1</sup>')
+    .replace(/\n/g, '<br>');
+}
+
+function accepts(decimals, anyOf) {
+  var bits = [];
+  if (decimals !== null && decimals !== undefined) {
+    bits.push('compared at ' + decimals + (decimals === 1 ? ' decimal place' : ' decimal places'));
+  }
+  if (anyOf && anyOf.length) bits.push('also accepts ' + anyOf.join(', '));
+  return bits.length ? ' <span class="n">(' + esc(bits.join('; ')) + ')</span>' : '';
+}
+
+function draw(key) {
+  var html = '<h1>' + esc(key.title) + ' — answer key</h1>' +
+             '<p class="sub">' + esc(key.scenario) +
+             '. Printed from the same content files the simulation itself reads, so it ' +
+             'cannot drift out of step with what the candidate is marked against.</p>';
+
+  html += '<div class="totals">' +
+    '<div>Investigation <b>' + key.totals.investigation + '</b> items</div>' +
+    '<div>Analysis <b>' + key.totals.analysis + '</b> boxes</div>' +
+    '<div>Report <b>' + key.totals.report + '</b> parts</div>' +
+    '<div>Cases <b>' + key.totals.cases + '</b></div>' +
+    '<div>Total <b>' + key.totals.total + '</b></div>' +
+  '</div>';
+
+  /* --- Investigation, grouped by the section each item appears in ------- */
+  html += '<h2>Investigation — the ' + key.totals.investigation +
+          ' pieces of information to collect</h2>';
+  var w = key.returnVisitWeight;
+  var earned = w === 1 ? 'a full mark' : w === 0 ? 'nothing'
+             : w === 0.5 ? 'half a mark' : String(w) + ' of a mark';
+  html += '<p class="sub" style="margin-bottom:var(--space-4)">' +
+          'Each of these earns a full mark if it was collected before the candidate first ' +
+          'left the Investigation. One fetched on a return visit from the Analysis earns ' +
+          esc(earned) + ' (set by <code>return_visit_weight</code> in ' +
+          '<code>version.json</code>, currently <code>' + esc(String(w)) + '</code>). ' +
+          'One never collected earns nothing.</p>';
+  var lastSection = null, n = 0;
+  for (var i = 0; i < key.investigation.length; i++) {
+    var item = key.investigation[i];
+    if (item.section !== lastSection) {
+      html += '<h4>' + nl(item.section) + '</h4>';
+      lastSection = item.section;
+    }
+    n++;
+    html += '<div class="item"><span class="n">' + n + '.</span> ' +
+              '<span class="a">' + nl(item.text) + '</span> ' +
+              '<span class="n">(' + nl(item.label) + ')</span>' +
+              (item.needed_for ? '<div class="why">Needed for: ' + nl(item.needed_for) + '</div>' : '') +
+            '</div>';
+  }
+  if (key.investigationExplanation) {
+    html += '<div class="item"><div class="why">' + nl(key.investigationExplanation) + '</div></div>';
+  }
+
+  /* --- Analysis --------------------------------------------------------- */
+  html += '<h2>Analysis</h2>';
+  for (i = 0; i < key.analysis.length; i++) {
+    var q = key.analysis[i];
+    html += '<div class="q"><h3>Question ' + q.number + '</h3>' +
+            '<div class="qtext">' + nl(q.text) + '</div>';
+    for (var b = 0; b < q.boxes.length; b++) {
+      var box = q.boxes[b];
+      html += '<div class="item">' + nl(box.label) + ' = <span class="a">' + nl(box.answer) +
+                (box.unit ? nl(box.unit) : '') + '</span>' +
+                accepts(box.decimals, box.any_of) +
+                (box.explanation ? '<div class="why">' + nl(box.explanation) + '</div>' : '') +
+              '</div>';
+    }
+    html += '</div>';
+  }
+
+  /* --- Report ----------------------------------------------------------- */
+  html += '<h2>Report</h2>';
+  var filled = key.report.template;
+  for (i = 0; i < key.report.written.length; i++) {
+    var w = key.report.written[i];
+    filled = filled.replace('[[' + w.id + ']]', '⟨' + w.answerLabel + '⟩');
+  }
+  html += '<div class="q"><h3>Part 1 — written</h3>' +
+          '<div class="tpl">' + nl(filled) + '</div>';
+  for (i = 0; i < key.report.written.length; i++) {
+    w = key.report.written[i];
+    html += '<div class="item"><span class="n">blank ' + esc(w.id.toUpperCase()) + '</span> = ' +
+              '<span class="a">' + nl(w.answerLabel) + '</span>' +
+              accepts(w.decimals, w.any_of) +
+              (w.explanation ? '<div class="why">' + nl(w.explanation) + '</div>' : '') +
+            '</div>';
+  }
+  html += '</div>';
+
+  html += '<div class="q"><h3>Part 2 — the chart to choose</h3>' +
+          '<div class="qtext">' + nl(key.report.chart.prompt) + '</div>' +
+          '<div class="item"><span class="a">' + nl(key.report.chart.answer.toUpperCase()) + '</span>' +
+            (key.report.chart.explanation
+              ? '<div class="why">' + nl(key.report.chart.explanation) + '</div>' : '') +
+          '</div></div>';
+
+  html += '<div class="q"><h3>Part 3 — the figures</h3>' +
+          '<div class="qtext">' + nl(key.report.grid.prompt) + '</div>';
+  for (i = 0; i < key.report.grid.cells.length; i++) {
+    var cell = key.report.grid.cells[i];
+    html += '<div class="item">' + nl(cell.row) + ' — ' + nl(cell.col) + ' = ' +
+              '<span class="a">' + nl(cell.answer) + '</span>' +
+              (cell.fixed ? ' <span class="n">(pre-filled, not marked)</span>' : '') +
+              accepts(null, cell.any_of) +
+            '</div>';
+  }
+  if (key.report.grid.explanation) {
+    html += '<div class="item"><div class="why">' + nl(key.report.grid.explanation) + '</div></div>';
+  }
+  html += '</div>';
+
+  /* --- Cases ------------------------------------------------------------ */
+  html += '<h2>Cases</h2>';
+  for (i = 0; i < key.cases.length; i++) {
+    var c = key.cases[i];
+    html += '<div class="q"><h3>Case ' + c.number + '</h3>' +
+            '<div class="qtext">' + nl(c.question) + '</div>';
+    if (c.answer !== null) {
+      html += '<div class="item"><span class="a">' + nl(c.answer) + '</span></div>';
+    }
+    for (var p = 0; p < c.parts.length; p++) {
+      html += '<div class="item">' + nl(c.parts[p].label) + ' = ' +
+                '<span class="a">' + nl(c.parts[p].answer) + '</span>' +
+                (c.parts[p].explanation
+                  ? '<div class="why">' + nl(c.parts[p].explanation) + '</div>' : '') +
+              '</div>';
+    }
+    if (c.explanation) {
+      html += '<div class="item"><div class="why">' + nl(c.explanation) + '</div></div>';
+    }
+    html += '</div>';
+  }
+
+  document.getElementById('out').innerHTML = html;
+  document.title = key.title + ' — answer key';
+}
+
+var id = CONTENT.versionFromUrl(window.location.search, 'rr6');
+CONTENT.loadVersion(id, '../').then(function (loaded) {
+  if (!loaded.ok) {
+    document.getElementById('out').innerHTML =
+      '<h1>The content could not be read</h1><ul>' +
+      loaded.errors.map(function (e) { return '<li>' + esc(e) + '</li>'; }).join('') + '</ul>';
+    return;
+  }
+  draw(MARKING.answerKey(loaded.content));
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,512 @@
+{
+  "directions": "",
+  "cases": [
+    {
+      "number": 1,
+      "mechanism": "choose_one",
+      "calculator": true,
+      "prompt": "Horned Armadillos are one of the species currently thriving in the Aldarin Island. A group of researchers are investigating their population dynamics and have mapped out their population by zone and age group:",
+      "data": [
+        {
+          "kind": "table",
+          "header": [
+            "Zones",
+            "Juvenile",
+            "Reproductive",
+            "Senior"
+          ],
+          "draggable": true,
+          "rows": [
+            [
+              "Teklan Hills",
+              "50",
+              "170",
+              "90"
+            ],
+            [
+              "Mistveil Woods",
+              "40",
+              "126",
+              "64"
+            ],
+            [
+              "Bluebell Woods",
+              "27",
+              "100",
+              "33"
+            ],
+            [
+              "Rosefield",
+              "20",
+              "70",
+              "30"
+            ]
+          ]
+        }
+      ],
+      "question": "Assuming:\n• P represents future population\n• n represents number of years from present\n• The population will double every {{7}} years\n• The population shown above represent the initial population at present\nWhat is the best equation to calculate the future Horned Armadillo population?",
+      "options": {
+        "a": "P = (820 / n) + 2^{7}",
+        "b": "P = 820 × 2^{(n/7)}",
+        "c": "P = (840 / n) + 2^{7}",
+        "d": "P = 840 × 2^{(n/7)}"
+      },
+      "answer": "b",
+      "explanation": "Only two formula shapes are offered: constant × 2^{(n/7)}, and (constant ÷ n) + 2^{7}. Doubling every 7 years is the first shape, so the answer is b or d. The constant must be the present population: 310 + 230 + 160 + 120 = 820. So P = 820 × 2^{(n/7)}."
+    },
+    {
+      "number": 2,
+      "mechanism": "collect",
+      "calculator": false,
+      "prompt": "Greymane Wolves were the primary predators in the Aldarin Island prior to the introduction of Dashed Coyotes. The table below shows their expected hunting activity in Teklan Hills and Rosefield:",
+      "data": [
+        {
+          "kind": "table",
+          "header": [
+            "",
+            "Teklan Hills",
+            "Rosefield"
+          ],
+          "rows": [
+            [
+              "Packs",
+              "[[c2_existing_packs_teklan]]",
+              "[[c2_existing_packs_rosefield]]"
+            ],
+            [
+              "Average pack size",
+              "[[c2_existing_size_teklan]]",
+              "[[c2_existing_size_rosefield]]"
+            ],
+            [
+              "Average annual hunts per pack",
+              "[[c2_existing_hunts_teklan]]",
+              "[[c2_existing_hunts_rosefield]]"
+            ],
+            [
+              "Average kills per hunt",
+              "[[c2_existing_kills_teklan]]",
+              "[[c2_existing_kills_rosefield]]"
+            ],
+            [
+              "Expected growth in annual hunts after Y1 (%)",
+              "[[c2_existing_growth_teklan]]",
+              "[[c2_existing_growth_rosefield]]"
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Assume that new wolf packs will be added tomorrow, with the following being the expected hunting activity for the new wolf packs:"
+        },
+        {
+          "kind": "table",
+          "header": [
+            "",
+            "Teklan Hills",
+            "Rosefield"
+          ],
+          "rows": [
+            [
+              "Packs",
+              "[[c2_new_packs_teklan]]",
+              "[[c2_new_packs_rosefield]]"
+            ],
+            [
+              "Average pack size",
+              "[[c2_new_size_teklan]]",
+              "[[c2_new_size_rosefield]]"
+            ],
+            [
+              "Average annual hunts per pack",
+              "[[c2_new_hunts_teklan]]",
+              "[[c2_new_hunts_rosefield]]"
+            ],
+            [
+              "Average kills per hunt",
+              "[[c2_new_kills_teklan]]",
+              "[[c2_new_kills_rosefield]]"
+            ],
+            [
+              "Expected growth in annual hunts after Y1 (%)",
+              "[[c2_new_growth_teklan]]",
+              "[[c2_new_growth_rosefield]]"
+            ]
+          ]
+        }
+      ],
+      "items": {
+        "c2_existing_packs_teklan": {
+          "label": "# of existing packs in Teklan Hills",
+          "required": true,
+          "text": "3"
+        },
+        "c2_existing_size_teklan": {
+          "label": "Average pack size for existing wolves in Teklan Hills",
+          "required": false,
+          "text": "8"
+        },
+        "c2_existing_hunts_teklan": {
+          "label": "Average annual hunts per existing pack in Teklan Hills",
+          "required": true,
+          "text": "40"
+        },
+        "c2_existing_kills_teklan": {
+          "label": "Average kills per hunt for existing wolves in Teklan Hills",
+          "required": true,
+          "text": "3"
+        },
+        "c2_existing_growth_teklan": {
+          "label": "Expected growth in annual hunts for existing wolves after Y1 in Teklan Hills",
+          "required": false,
+          "text": "10"
+        },
+        "c2_existing_packs_rosefield": {
+          "label": "# of existing packs in Rosefield",
+          "required": false,
+          "text": "5"
+        },
+        "c2_existing_size_rosefield": {
+          "label": "Average pack size for existing wolves in Rosefield",
+          "required": false,
+          "text": "5"
+        },
+        "c2_existing_hunts_rosefield": {
+          "label": "Average annual hunts per existing pack in Rosefield",
+          "required": false,
+          "text": "50"
+        },
+        "c2_existing_kills_rosefield": {
+          "label": "Average kills per hunt for existing wolves in Rosefield",
+          "required": false,
+          "text": "3"
+        },
+        "c2_existing_growth_rosefield": {
+          "label": "Expected growth in annual hunts for existing wolves after Y1 in Rosefield",
+          "required": false,
+          "text": "12"
+        },
+        "c2_new_packs_teklan": {
+          "label": "# of new packs in Teklan Hills",
+          "required": true,
+          "text": "1"
+        },
+        "c2_new_size_teklan": {
+          "label": "Average pack size for new wolves in Teklan Hills",
+          "required": false,
+          "text": "7"
+        },
+        "c2_new_hunts_teklan": {
+          "label": "Average annual hunts per new pack in Teklan Hills",
+          "required": true,
+          "text": "42"
+        },
+        "c2_new_kills_teklan": {
+          "label": "Average kills per hunt for new wolves in Teklan Hills",
+          "required": true,
+          "text": "4"
+        },
+        "c2_new_growth_teklan": {
+          "label": "Expected growth in annual hunts for new wolves after Y1 in Teklan Hills",
+          "required": false,
+          "text": "10"
+        },
+        "c2_new_packs_rosefield": {
+          "label": "# of new packs in Rosefield",
+          "required": false,
+          "text": "2"
+        },
+        "c2_new_size_rosefield": {
+          "label": "Average pack size for new wolves in Rosefield",
+          "required": false,
+          "text": "6"
+        },
+        "c2_new_hunts_rosefield": {
+          "label": "Average annual hunts per new pack in Rosefield",
+          "required": false,
+          "text": "49"
+        },
+        "c2_new_kills_rosefield": {
+          "label": "Average kills per hunt for new wolves in Rosefield",
+          "required": false,
+          "text": "3"
+        },
+        "c2_new_growth_rosefield": {
+          "label": "Expected growth in annual hunts for new wolves after Y1 in Rosefield",
+          "required": false,
+          "text": "9"
+        }
+      },
+      "question": "What information is used to determine the new total number of kills in Teklan Hills over the coming year? Collect the relevant data into the Research Journal.",
+      "explanation": "Only Teklan Hills matters, so the Rosefield column of both tables can be ignored; and only the coming year matters, so the growth rows can be ignored. Total kills = kills from existing packs + kills from new packs, and each = number of packs × annual hunts per pack × kills per hunt. So the six items needed are, for Teklan Hills in both tables: number of packs, average annual hunts per pack, and average kills per hunt. Pack size is not needed."
+    },
+    {
+      "number": 3,
+      "mechanism": "number",
+      "calculator": true,
+      "prompt": "Researchers began tracking a new disease that has been ravaging the fauna population on the Aldarin Island. The following shows the number of new infections across the Island over the first half of the year:",
+      "data": [
+        {
+          "kind": "table",
+          "header": [
+            "",
+            "Month 1",
+            "Month 2",
+            "Month 3",
+            "Month 4",
+            "Month 5",
+            "Month 6"
+          ],
+          "draggable": true,
+          "rows": [
+            [
+              "Number of New Infections",
+              "60",
+              "84",
+              "138",
+              "143",
+              "198",
+              "225"
+            ]
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "The growth from Month 6 to Month 12 (end of the year) is expected to be {{15}} percentage points higher than the growth rate from Month 1 to Month 6."
+        }
+      ],
+      "question": "What is the expected number of new infections for Month 12? Round up your answer to the closest whole number.",
+      "boxes": [
+        {
+          "id": "c3",
+          "label": "Answer =",
+          "answer": 878,
+          "accept": {
+            "decimals": 0
+          }
+        }
+      ],
+      "explanation": "Growth from Month 1 to Month 6 = 225 ÷ 60 − 1 = 2.75 = 275%. Growth from Month 6 to Month 12 = 275% + 15 points = 290%. Month 12 infections = 225 × (1 + 2.9) = 877.5, rounded up to 878."
+    },
+    {
+      "number": 4,
+      "mechanism": "dropdowns",
+      "calculator": false,
+      "prompt": "Researchers began tracking a new disease that has been ravaging the fauna population on the Aldarin Island. The following shows the number of new infections across the Island over the first half of the year:",
+      "data": [
+        {
+          "kind": "table",
+          "header": [
+            "Zones",
+            "Month 1",
+            "Month 2",
+            "Month 3",
+            "Month 4",
+            "Month 5",
+            "Month 6"
+          ],
+          "rows": [
+            [
+              "Teklan Hills",
+              "15",
+              "14",
+              "45",
+              "45",
+              "55",
+              "60"
+            ],
+            [
+              "Mistveil Woods",
+              "25",
+              "30",
+              "35",
+              "35",
+              "55",
+              "55"
+            ],
+            [
+              "Bluebell Woods",
+              "10",
+              "15",
+              "20",
+              "23",
+              "40",
+              "45"
+            ],
+            [
+              "Rosefield",
+              "10",
+              "15",
+              "38",
+              "40",
+              "48",
+              "65"
+            ]
+          ]
+        }
+      ],
+      "question": "Which chart type best visualizes how the new infections evolved over time across the four zones of the Aldarin Island?",
+      "dropdowns": [
+        {
+          "id": "c4",
+          "label": "Answer",
+          "options": {
+            "line": "Line Graph",
+            "bar": "Bar Chart",
+            "scatter": "Scatterplot",
+            "pie": "Pie Chart"
+          },
+          "answer": "line"
+        }
+      ],
+      "explanation": "A line graph is the best choice for trends over time. A bar chart shows the distribution of a dataset at a given time; a scatterplot shows the correlation between two variables; a pie chart shows the components of a single variable."
+    },
+    {
+      "number": 5,
+      "mechanism": "choose_many",
+      "calculator": false,
+      "prompt": "Ecologists on the Aldarin Island measured the year-over-year percentage change in successful fledglings (i.e., recently-born birds that successfully grew enough to begin flying) for three seabird species across the four coasts of the Island. The table below shows the percentage change compared to the previous year:",
+      "data": [
+        {
+          "kind": "table",
+          "header": [
+            "Coast",
+            "Cliff Gulls (%)",
+            "Sand Terns (%)",
+            "Reef Petrels (%)"
+          ],
+          "rows": [
+            [
+              "North Reach",
+              "+8",
+              "+16",
+              "+10"
+            ],
+            [
+              "East Inlet",
+              "+5",
+              "+15",
+              "+9"
+            ],
+            [
+              "South Cliffs",
+              "+10",
+              "+9",
+              "+7"
+            ],
+            [
+              "West Shoals",
+              "+6",
+              "+8",
+              "+11"
+            ]
+          ]
+        }
+      ],
+      "question": "Which of the following statements are supported by the data? You may select more than one.",
+      "options": {
+        "a": "Sand Terns experienced the fastest overall breeding success growth on the Aldarin Island.",
+        "b": "Reef Petrels had their strongest breeding improvement in West Shoals.",
+        "c": "North Reach recorded the highest total number of successful fledglings.",
+        "d": "None of the above."
+      },
+      "answer": [
+        "b"
+      ],
+      "option_explanations": {
+        "a": "Not supported. It looks likely, but the table gives percentage changes, not numbers of birds; a coast with fast Tern growth could have very few birds, so the overall figure is not certain.",
+        "b": "Supported. West Shoals shows +11% for Reef Petrels, the highest of the four coasts (North Reach is next at +10%).",
+        "c": "Not supported. The table shows percentage change, not the number of fledglings.",
+        "d": "Not supported, because statement b is supported."
+      },
+      "explanation": "Only statement b can be read directly from the table. Do not select a statement unless the data makes it certain."
+    },
+    {
+      "number": 6,
+      "mechanism": "numbers",
+      "calculator": true,
+      "prompt": "Marine biologists on the Aldarin Island recorded the number of Silverfin fish sightings across five coastal zones over four consecutive weeks:",
+      "data": [
+        {
+          "kind": "table",
+          "header": [
+            "Coast",
+            "Week 1",
+            "Week 2",
+            "Week 3",
+            "Week 4"
+          ],
+          "draggable": true,
+          "rows": [
+            [
+              "North Reach",
+              "18",
+              "22",
+              "20",
+              "40"
+            ],
+            [
+              "East Inlet",
+              "25",
+              "27",
+              "26",
+              "24"
+            ],
+            [
+              "South Cliffs",
+              "12",
+              "15",
+              "15",
+              "16"
+            ],
+            [
+              "West Shoals",
+              "30",
+              "32",
+              "31",
+              "29"
+            ],
+            [
+              "Hidden Inlet",
+              "7",
+              "10",
+              "12",
+              "15"
+            ]
+          ]
+        }
+      ],
+      "question": "Report the mean, mode, and median weekly sightings based on the data above.",
+      "boxes": [
+        {
+          "id": "c6_mean",
+          "label": "Mean =",
+          "answer": 21.3,
+          "accept": {
+            "decimals": 1
+          },
+          "explanation": "Row totals: 100 + 102 + 58 + 122 + 44 = 426 over 20 values; mean = 426 ÷ 20 = 21.3."
+        },
+        {
+          "id": "c6_median",
+          "label": "Median =",
+          "answer": 21,
+          "accept": {
+            "decimals": 0
+          },
+          "explanation": "Sorted: 7, 10, 12, 12, 15, 15, 15, 16, 18, 20, 22, 24, 25, 26, 27, 29, 30, 31, 32, 40. Twenty values, so the median is the average of the 10th and 11th: (20 + 22) ÷ 2 = 21."
+        },
+        {
+          "id": "c6_mode",
+          "label": "Mode =",
+          "answer": 15,
+          "accept": {
+            "decimals": 0
+          },
+          "explanation": "15 appears three times, more than any other value."
+        }
+      ],
+      "explanation": "With 20 values it is safer to total each coast first, then combine."
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "written": {
+    "template": "With the additional data, the kill rate for Dashed Coyotes in Mistveil Woods [[a]] increase. Under the new rate, annual prey killed is expected to be [[b]] compared to disease deaths of [[c]]. [[d]]% of the total deaths were due to the Dashed Coyotes in Mistveil Woods.\n\nWith the additional data, the kill rate for Dashed Coyotes in Bluebell Woods [[e]] increase. Under the new rate, annual prey killed is expected to be [[f]] compared to disease deaths of [[g]]. [[h]]% of the total deaths were due to the Dashed Coyotes in Bluebell Woods.",
+    "blanks": {
+      "a": {
+        "kind": "dropdown",
+        "options": {
+          "will": "will",
+          "wont": "won't"
+        },
+        "answer": "will",
+        "explanation": "Mistveil's new kill rate (0.4) is higher than the old one in Exhibit 2 (0.35), so it will increase."
+      },
+      "b": {
+        "kind": "number",
+        "answer": 876,
+        "accept": {
+          "decimals": 0
+        },
+        "explanation": "Annual prey killed in Mistveil Woods, from Question 2."
+      },
+      "c": {
+        "kind": "number",
+        "answer": 281,
+        "accept": {
+          "decimals": 0,
+          "any_of": [
+            270
+          ]
+        },
+        "explanation": "Illness deaths in Mistveil Woods, from the working of Question 3 (281). A candidate who applied the rounded 9% to 3,000 gets 270, which is also accepted."
+      },
+      "d": {
+        "kind": "number",
+        "answer": 76,
+        "accept": {
+          "decimals": 0
+        },
+        "explanation": "From Question 4."
+      },
+      "e": {
+        "kind": "dropdown",
+        "options": {
+          "will": "will",
+          "wont": "won't"
+        },
+        "answer": "wont",
+        "explanation": "Bluebell's new kill rate (0.3) equals the old one (0.30), so it won't increase."
+      },
+      "f": {
+        "kind": "number",
+        "answer": 1205,
+        "accept": {
+          "decimals": 0
+        },
+        "explanation": "Annual prey killed in Bluebell Woods, from Question 2."
+      },
+      "g": {
+        "kind": "number",
+        "answer": 361,
+        "accept": {
+          "decimals": 0,
+          "any_of": [
+            375
+          ]
+        },
+        "explanation": "Illness deaths in Bluebell Woods, from the working of Question 3 (361). Applying the rounded 10% to 3,750 gives 375, also accepted."
+      },
+      "h": {
+        "kind": "number",
+        "answer": 77,
+        "accept": {
+          "decimals": 0
+        },
+        "explanation": "From Question 4."
+      }
+    }
+  },
+  "chart": {
+    "prompt": "Select the best graph to visualize how the total deaths across Mistveil and Bluebell Woods break down by individual zones and causes.",
+    "options": [
+      "bar",
+      "line",
+      "pie"
+    ],
+    "default": "bar",
+    "answer": "pie",
+    "explanation": "The pie chart shows the components of a single variable; the line chart shows trends over time; the bar chart shows the distribution of a dataset at a given time. We want to break total deaths down by zone and cause, so the pie chart is the most appropriate."
+  },
+  "grid": {
+    "prompt": "Add the relevant information to show how the total deaths across Mistveil and Bluebell Woods break down by individual zones and causes.",
+    "columns": [
+      "Mistveil Woods",
+      "Bluebell Woods"
+    ],
+    "rows": [
+      "Deaths due to Dashed Coyotes",
+      "Deaths due to Illness and Disease"
+    ],
+    "cells": [
+      [
+        {
+          "id": "g_mist_coy",
+          "answer": 876,
+          "accept": {
+            "decimals": 0
+          }
+        },
+        {
+          "id": "g_blue_coy",
+          "answer": 1205,
+          "accept": {
+            "decimals": 0
+          }
+        }
+      ],
+      [
+        {
+          "id": "g_mist_ill",
+          "answer": 281,
+          "accept": {
+            "decimals": 0,
+            "any_of": [
+              270
+            ]
+          }
+        },
+        {
+          "id": "g_blue_ill",
+          "answer": 361,
+          "accept": {
+            "decimals": 0,
+            "any_of": [
+              375
+            ]
+          }
+        }
+      ]
+    ],
+    "explanation": "Deaths due to Dashed Coyotes come from Question 2 (876 and 1,205); deaths due to illness and disease from the working of Question 3 (281 and 361)."
+  }
+}
