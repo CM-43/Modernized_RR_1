@@ -583,6 +583,145 @@ function run(content, markingSource) {
         keyPrint.investigation.length === 29 &&
         keyPrint.investigation.every(function (i) { return i.section !== ''; }));
 
+  /* ---- GROUP 7 — where the candidate stands, and demo mode (v1.2) ----- */
+  group('7. Weighted score, percentile and demo mode', 30);
+
+  var bench = content.version.benchmark;
+  check('the content carries a benchmark block', !!bench && !!bench.percentiles);
+
+  /* the answer key */
+  var keyRun = M.markGame(content, keyAnswers(content));
+  checkEqual('the answer key\'s weighted score is 100', keyRun.weighted, 100);
+  checkEqual('and its percentile is 99, the top of the scale', keyRun.percentile, 99);
+  checkEqual('decile 10, top 1%, in the highest zone',
+             [keyRun.decile, keyRun.topShare, keyRun.zone && keyRun.zone.label],
+             [10, 1, bench.zones[bench.zones.length - 1].label]);
+
+  /* The run of deliberate mistakes that play-key.js plays through the screens:
+     one Investigation item left behind, Question 1 Mistveil 0.45, blank c
+     empty and the chart left at bar, Case 1 wrong, Case 2 one short, Case 5
+     one too many, Case 6 one box wrong. 28/29, 7/8, 11/13, 2/6. */
+  var mistakes = keyAnswers(content);
+  mistakes.investigation.journal = requiredIds.slice(1).concat([optionalIds[0], optionalIds[1]]);
+  mistakes.analysis[content.analysis.questions[0].boxes[0].id].value = '0.45';
+  delete mistakes.report.written.c;
+  mistakes.report.chart.value = content.report.chart['default'];
+  content.cases.cases.forEach(function (c) {
+    var e = mistakes.cases[c.number];
+    if (c.mechanism === 'choose_one') {
+      e.value = Object.keys(c.options).filter(function (o) { return o !== c.answer; })[0];
+    } else if (c.mechanism === 'collect') {
+      e.journal = e.journal.slice(1);
+    } else if (c.mechanism === 'choose_many') {
+      e.values = c.answer.concat([Object.keys(c.options).filter(function (o) {
+        return c.answer.indexOf(o) === -1; })[0]]);
+    } else if (c.mechanism === 'numbers' && c.number === 6) {
+      e.boxes[c.boxes[c.boxes.length - 1].id] = '99';
+    }
+  });
+  var mistakesRun = M.markGame(content, mistakes);
+  checkEqual('the run of mistakes marks 28/29, 7/8, 11/13, 2/6',
+             [mistakesRun.investigation.score, mistakesRun.analysis.score,
+              mistakesRun.report.score, mistakesRun.casesScore], [28, 7, 11, 2]);
+  checkEqual('its weighted score is 25 x (28/29 + 7/8 + 11/13 + 2/6) = 75.5', mistakesRun.weighted, 75.5);
+  checkEqual('which reads as the 62nd percentile', mistakesRun.percentile, 62);
+  checkEqual('the raw total is unchanged by any of this: 48 / 56',
+             [mistakesRun.total.score, mistakesRun.total.of], [48, 56]);
+
+  /* the worked example in the review note: 24.5/29, 8/8, 9/13, 3/6 */
+  var example = { investigation: { score: 24.5, of: 29 }, analysis: { score: 8, of: 8 },
+                  report: { score: 9, of: 13 }, casesScore: 3, casesOf: 6 };
+  checkEqual('24.5/29, 8/8, 9/13 and 3/6 weigh 75.9 out of 100',
+             M.weightedScore(example, bench.phase_weights), 75.9);
+  checkEqual('75.9 reads as the 63rd percentile', M.percentile(75.9, bench), 63);
+  checkEqual('0 reads as 1', M.percentile(0, bench), 1);
+  checkEqual('100 reads as 99', M.percentile(100, bench), 99);
+  checkEqual('68, a point in the table, reads exactly as its 50', M.percentile(68, bench), 50);
+  checkEqual('71, halfway between 68 (50th) and 74 (60th), reads as 55', M.percentile(71, bench), 55);
+  checkEqual('76.5, halfway between 74 (60th) and 79 (68th), reads as 64', M.percentile(76.5, bench), 64);
+  checkEqual('82, three fifths from 79 (68th) to 84 (75th), is 72.2 and rounds to 72',
+             M.percentile(82, bench), 72);
+  checkEqual('83, four fifths of the way, is 73.6 and rounds UP to 74 (rounded, not cut off)',
+             M.percentile(83, bench), 74);
+
+  var shortTable = { percentiles: [[20, 5], [90, 97]] };
+  checkEqual('below a table\'s first point the first point\'s percentile holds (10 reads as 5)',
+             M.percentile(10, shortTable), 5);
+  checkEqual('above its last point the last one holds (95 reads as 97)', M.percentile(95, shortTable), 97);
+  checkEqual('and the answer is never below 1 or above 99, whatever the table',
+             [M.percentile(0, { percentiles: [[0, 0], [100, 100]] }),
+              M.percentile(100, { percentiles: [[0, 0], [100, 100]] })], [1, 99]);
+
+  checkEqual('decile: 72 is decile 8, 70 is 7, 1 is 1, 99 is 10',
+             [M.decileOf(72), M.decileOf(70), M.decileOf(1), M.decileOf(99)], [8, 7, 1, 10]);
+  checkEqual('zone at 69, 70, 89 and 90',
+             [69, 70, 89, 90].map(function (p) { return M.zoneOf(p, bench.zones).label; }),
+             ['Below 70th', 'Borderline', 'Likely pass', 'Comfortable']);
+
+  function validateWithVersion(v) {
+    return M.validateContent(v, content.investigation, content.analysis, content.report, content.cases);
+  }
+  var v;
+  v = deepCopy(content.version); v.benchmark.phase_weights.cases = 24;
+  var r1 = validateWithVersion(v);
+  check('weights adding up to 99 are refused, in plain English',
+        !r1.ok && includesMessage(r1.errors, 'add up to 99'), r1.errors.join(' | '));
+  v = deepCopy(content.version); v.benchmark.phase_weights.report = 'a quarter';
+  var r2 = validateWithVersion(v);
+  check('a weight that is not a number is refused',
+        !r2.ok && includesMessage(r2.errors, '"report" must be a number'), r2.errors.join(' | '));
+  v = deepCopy(content.version); v.benchmark.percentiles[5][1] = 10;
+  var r3 = validateWithVersion(v);
+  check('a table whose percentile falls as the score rises is refused',
+        !r3.ok && includesMessage(r3.errors, 'can never mean a lower percentile'), r3.errors.join(' | '));
+  v = deepCopy(content.version); v.benchmark.percentiles[3][0] = 10;
+  var r4 = validateWithVersion(v);
+  check('a table whose scores are out of order is refused',
+        !r4.ok && includesMessage(r4.errors, 'not above the point before it'), r4.errors.join(' | '));
+  v = deepCopy(content.version); v.benchmark.percentiles[15] = [101, 99];
+  var r5 = validateWithVersion(v);
+  check('a score above 100 is refused', !r5.ok && includesMessage(r5.errors, 'scores run from 0 to 100'),
+        r5.errors.join(' | '));
+  v = deepCopy(content.version); v.benchmark.percentiles[15] = [100, 100];
+  var r6 = validateWithVersion(v);
+  check('a percentile of 100 is refused', !r6.ok && includesMessage(r6.errors, 'percentiles run from 1 to 99'),
+        r6.errors.join(' | '));
+  v = deepCopy(content.version); v.benchmark.zones = [bench.zones[1], bench.zones[0]];
+  var r7 = validateWithVersion(v);
+  check('zones out of order, or not starting at 0, are refused',
+        !r7.ok && includesMessage(r7.errors, 'zones are out of order') &&
+        includesMessage(r7.errors, 'first zone must start at 0'), r7.errors.join(' | '));
+  check('every one of those complaints names version.json',
+        [r1, r2, r3, r4, r5, r6, r7].every(function (x) {
+          return x.errors.every(function (e) { return e.indexOf('version.json:') === 0; });
+        }));
+
+  v = deepCopy(content); delete v.version.benchmark;
+  var noBench = M.markGame(v, keyAnswers(v));
+  check('with no benchmark block there is no weighted score and no percentile',
+        noBench.weighted === null && noBench.percentile === null && noBench.zone === null &&
+        noBench.total.score === 56);
+  check('and the content without it is still valid', validateWithVersion(v.version).ok);
+
+  /* results_mode */
+  checkEqual('RR6 ships with results_mode "full"', content.version.results_mode, 'full');
+  v = deepCopy(content.version); v.results_mode = 'demo';
+  check('"demo" is accepted (the content carries a demo_note)', validateWithVersion(v).ok,
+        validateWithVersion(v).errors.join(' | '));
+  v = deepCopy(content.version); delete v.results_mode;
+  check('leaving results_mode out is accepted (it means "full")', validateWithVersion(v).ok);
+  v = deepCopy(content.version); v.results_mode = 'lite';
+  var r8 = validateWithVersion(v);
+  check('anything else is refused, in plain English',
+        !r8.ok && includesMessage(r8.errors, '"results_mode" must be "full"'), r8.errors.join(' | '));
+  v = deepCopy(content.version); v.results_mode = 'demo'; delete v.labels.demo_note;
+  var r9 = validateWithVersion(v);
+  check('a demo with no demo_note to show is refused',
+        !r9.ok && includesMessage(r9.errors, 'demo_note'), r9.errors.join(' | '));
+
+  check('the rules engine\'s new functions are exported',
+        typeof M.weightedScore === 'function' && typeof M.percentile === 'function');
+
   render();
 }
 

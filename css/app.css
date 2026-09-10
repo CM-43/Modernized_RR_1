@@ -68,6 +68,40 @@
   font-weight: 600;
 }
 
+/* "Timer paused" (v1.2, rule 3.3): under the time text while the clock is
+   stopped. It is placed OVER the bar area, not in a line of its own, so the
+   header keeps its height and the clock and Part tabs never move. */
+.time-text-wrap { position: relative; display: inline-flex; align-items: center; }
+/* The popup's backdrop (z-index 100) blurs everything behind it, which made
+   "Timer paused" unreadable at exactly the moment it is shown. While the
+   clock is paused the header bar sits above the backdrop instead. Nothing
+   in it moves; it is only no longer blurred. */
+body.clock-paused .header-bar { z-index: 110; }
+.timer-paused {
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fcd34d;
+  pointer-events: none;
+}
+.timer-paused::before {             /* a small pause sign, two bars */
+  content: "";
+  width: 7px;
+  height: 9px;
+  background:
+    linear-gradient(currentColor, currentColor) 0 0 / 2.5px 100% no-repeat,
+    linear-gradient(currentColor, currentColor) 100% 0 / 2.5px 100% no-repeat;
+}
+
 .icon-btn {
   background: transparent;
   border: 1px solid var(--box-border);
@@ -329,6 +363,8 @@
   min-width: 205px;
   max-width: 330px;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 /* --- RIGHT: the Research Journal or the calculator --------------------- */
@@ -579,13 +615,20 @@ table.data-table {
   color: var(--on-light);
   font-size: max(13px, 0.86em);
 }
+/* Headings and row names may wrap; a value never does. v1.2: the cells used
+   to refuse to wrap at all, so on a narrow window a wide table ran off the
+   side of its card and the last columns sat behind a sideways scroll. In a
+   headless browser that scrollbar is invisible, which is how it went unseen:
+   at 900 x 540, Case 3's Months 4 to 6 (the one figure the question needs)
+   were out of sight. layout-check.js now measures every box for scrolling. */
 table.data-table th,
 table.data-table td {
   padding: 7px 10px;
   text-align: center;
   border-bottom: 1px solid var(--surface-line);
-  white-space: nowrap;
+  white-space: normal;
 }
+table.data-table .chip { white-space: nowrap; }
 table.data-table thead th {
   font-weight: 700;
   background: var(--surface-sunken);
@@ -647,6 +690,14 @@ table.data-table thead th:first-child { text-align: left; font-weight: 700; }
 /* A chip standing alone in a table cell has no room for the grip. */
 table.data-table .chip { padding: 1px 6px; }
 table.data-table .chip .grip { width: 7px; }
+/* On a narrower window the table gives up its spare padding and the grips
+   inside its cells (the chip is still a chip: light, bordered, draggable), so
+   every column fits inside its card without scrolling sideways. */
+@media (max-width: 1180px) {
+  table.data-table th, table.data-table td { padding: 6px 5px; }
+  table.data-table .chip { padding: 1px 5px; }
+  table.data-table .chip .grip { display: none; }
+}
 
 /* ==========================================================================
    5. QUESTIONS AND ANSWER BOXES
@@ -705,23 +756,34 @@ table.data-table .chip .grip { width: 7px; }
   padding-right: 2px;
 }
 /* The small ⓧ that empties a box. The real game has one beside every answer
-   box, so ours does too (R-D33). */
+   box, so ours does too (R-D33).
+
+   v1.2 (R-D41 item 2): drawn as a CLEAR control, not a multiplication sign.
+   Sitting next to numbers, a grey ✕ read as "times". It is a muted red on a
+   pale red disc at rest, and a white ✕ on a solid red disc under the mouse
+   or the keyboard. Measured contrast: the red ✕ on its pale disc 5.6 : 1,
+   the white ✕ on the solid disc 5.7 : 1 (Sea Wolf STYLE-GUIDE asks 3 : 1 for
+   a control's shape). The journal entry's ✕ is NOT this control and is not
+   changed (WK, 10 Sep). */
 .clear-btn {
   flex: 0 0 auto;
   width: 18px; height: 18px;
   border-radius: 50%;
   border: none;
-  background: var(--surface-sunken);
-  color: var(--on-light-muted);
+  background: #fde8e8;
+  color: #b42318;
   font-size: 11px;
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
+  transition: background 0.12s ease, color 0.12s ease;
 }
-.clear-btn:hover { background: var(--error); color: #fff; }
+.clear-btn:hover,
+.clear-btn:focus-visible { background: #c81e1e; color: #fff; }
 .clear-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 select.dropdown {
@@ -744,6 +806,51 @@ select.dropdown:focus { outline: 2px solid var(--accent); outline-offset: 0; }
 .choice .chart-icon { flex: 0 0 auto; }
 .choice .label { color: var(--on-light); font-size: max(13px, 0.9em); }
 
+/* Report, Graph (v1.2, rule 7.3): three cards SIDE BY SIDE, picture on top,
+   name beneath, radio at the bottom, as the real game arranges them. The row
+   never wraps; at 900 x 540 the cards and pictures simply get smaller. */
+.graph-cards {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-4);
+  max-width: 700px;
+}
+.choice.graph-card {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 220px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  text-align: center;
+  transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+.choice.graph-card:hover { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18); }
+.choice.graph-card:focus-within { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35); }
+.graph-picture {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius-small);
+}
+.choice.is-chosen .graph-picture { background: #fff; border-color: #bcd0f7; }
+.graph-picture .chart-icon { width: 68%; height: auto; max-height: 82%; }
+.choice.graph-card .label {
+  flex: 0 0 auto;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.choice.graph-card input { width: 18px; height: 18px; margin: 0; }
+
 /* Chart-type options shown as picture cards, as the real game shows them. */
 .card-choices { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .card-choices .choice {
@@ -763,6 +870,12 @@ select.dropdown:focus { outline: 2px solid var(--accent); outline-offset: 0; }
    pleasanter to use, no cleverer.
    ========================================================================== */
 
+/* v1.2 (R-D40 item 11, R-D41 item 3): the calculator runs down to the bottom
+   of its column, as the real game's does. The keypad keeps its natural size
+   at the bottom and the history takes all the space above it, scrolling
+   inside itself when full. It stops at 640px tall so on a big monitor in
+   fullscreen it does not become a 1,000px strip; above that it stays
+   top-aligned with the question. Where it sits does not change. */
 .calc {
   background: var(--surface);
   border: 1px solid var(--surface-line);
@@ -772,9 +885,14 @@ select.dropdown:focus { outline: 2px solid var(--accent); outline-offset: 0; }
   flex-direction: column;
   gap: var(--space-2);
   color: var(--on-light);
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 640px;
 }
+.calc > * { flex: 0 0 auto; }
 .calc-history {
-  height: 122px;
+  flex: 1 1 auto;
+  min-height: 58px;
   overflow-y: auto;
   background: var(--surface-plain);
   border: 1px solid var(--surface-line);
@@ -936,10 +1054,20 @@ table.grid-table td.is-fixed { color: var(--on-light-muted); font-weight: 600; }
 .login-card h1 { font-size: clamp(19px, 1.7vw, 24px); text-align: center; margin-bottom: var(--space-5); }
 .login-card .btn { width: 100%; padding: 11px 22px; }
 
-.start-card { width: min(860px, 94vw); padding: var(--space-6) 30px 26px; }
-.start-card h1 { font-size: clamp(21px, 2.1vw, 30px); }
+/* v1.2 (RD-STAGE3B-EVIDENCE/start-screen-v2.png): the phases as a 2 x 2 grid
+   with 14px gaps, and the facts and the Start button on one row, so the card
+   fits a 16:9 lesson box as small as 1000 x 562 without scrolling. WK found a
+   tighter version cluttered, so the spacing is the mock's, and it only
+   tightens below 600px of height (the block at the end of this section). */
+.start-card { width: min(900px, 100%); padding: 26px 32px 24px; }
+.start-card h1 { font-size: clamp(21px, 2.1vw, 30px); line-height: 1.36; }
 .start-scenario { color: var(--on-light-muted); font-size: max(14px, 0.95em); margin: 4px 0 var(--space-5); }
-.start-phases { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-5); }
+.start-phases {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: var(--space-5);
+}
 .start-phase {
   display: flex;
   gap: var(--space-3);
@@ -947,7 +1075,7 @@ table.grid-table td.is-fixed { color: var(--on-light-muted); font-weight: 600; }
   background: var(--surface-plain);
   border: 1px solid var(--surface-line);
   border-radius: var(--radius-small);
-  padding: 10px var(--space-4);
+  padding: 13px 16px;
 }
 .start-phase .n {
   flex: 0 0 auto;
@@ -963,7 +1091,13 @@ table.grid-table td.is-fixed { color: var(--on-light-muted); font-weight: 600; }
 }
 .start-phase .what { font-size: max(13px, 0.88em); }
 .start-phase .what b { display: block; font-size: max(14px, 0.92em); }
-.start-facts { display: flex; gap: var(--space-4); flex-wrap: wrap; margin-bottom: var(--space-5); }
+.start-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.start-facts { display: flex; gap: 14px; flex-wrap: nowrap; min-width: 0; }
 .start-fact {
   background: var(--surface-sunken);
   border-radius: var(--radius-small);
@@ -972,7 +1106,21 @@ table.grid-table td.is-fixed { color: var(--on-light-muted); font-weight: 600; }
 }
 .start-fact .k { font-size: max(12px, 0.78em); color: var(--on-light-muted); }
 .start-fact .v { font-size: max(17px, 1.15em); font-weight: 700; }
-.start-actions { display: flex; justify-content: flex-end; }
+.start-actions { display: flex; justify-content: flex-end; flex: 0 0 auto; }
+.start-actions .btn { padding-left: 22px; padding-right: 22px; }
+
+/* A short box (a zoomed browser, a squeezed lesson): the same arrangement
+   with less air, so nothing ever needs a scrollbar. */
+@media (max-height: 600px) {
+  .centre-screen { padding: var(--space-3); }
+  .start-card { padding: 18px 24px 16px; }
+  .start-scenario { margin: 2px 0 var(--space-3); }
+  .start-phases { gap: 10px; margin-bottom: var(--space-3); }
+  .start-phase { padding: 8px var(--space-3); }
+  .start-fact { padding: 7px var(--space-3); }
+  .login-card { padding: var(--space-5) 24px; }
+  .login-card h1 { margin-bottom: var(--space-3); }
+}
 
 .load-error {
   width: min(760px, 94vw);
@@ -1099,7 +1247,6 @@ table.grid-table td.is-fixed { color: var(--on-light-muted); font-weight: 600; }
   :root { --journal-min: 190px; --nav-min: 118px; }
   .tab { font-size: max(12px, 0.8em); padding: 7px 4px; }
   .tab-sub { margin-left: 9px; width: calc(100% - 9px); }
-  .calc-history { height: 92px; }
 }
 
 /* A SHORT window, not a narrow one. On a 540px-tall laptop screen the
@@ -1108,7 +1255,6 @@ table.grid-table td.is-fixed { color: var(--on-light-muted); font-weight: 600; }
    every other size — it simply gives itself less room for past calculations
    so that all twenty keys are reachable without scrolling. */
 @media (max-height: 660px) {
-  .calc-history { height: 58px; }
   .calc { padding: var(--space-2); gap: 6px; }
   .calc-result { min-height: 32px; }
   .calc-input { padding: 6px 8px; }
@@ -1173,4 +1319,174 @@ table.grid-table td.is-fixed { color: var(--on-light-muted); font-weight: 600; }
   font-weight: 600;
   padding: 0 7px;
   white-space: nowrap;
+}
+
+/* ==========================================================================
+   13. "WHERE YOU STAND" AND DEMO MODE (v1.2, after the clock: free design)
+
+   The percentile card above the four tiles (R-D41 to R-D43, matched to
+   RD-STAGE3B-EVIDENCE/percentile-card-crop.png), and the locked blocks of a
+   demo version (demo-lock-crop.png). Colours carry meaning here, so they are
+   named once below: the candidate's number and pill take their zone's
+   colour. Grey below the pass region, amber for the borderline zone, green
+   above it. Never red: a candidate below the line should be motivated, not
+   punished (R-D43).
+   ========================================================================== */
+.standing {
+  background: var(--surface-plain);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--radius);
+  padding: 22px 26px 18px;
+  margin-bottom: var(--space-4);
+  color: var(--on-light);
+}
+.standing-main {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.9fr) minmax(0, 2fr);
+  gap: 28px;
+  align-items: center;
+}
+.standing-figure { display: flex; align-items: baseline; flex-wrap: wrap; line-height: 1; }
+.standing-number { font-size: clamp(44px, 4.2vw, 56px); font-weight: 800; letter-spacing: -0.02em; }
+.standing-ordinal { font-size: clamp(20px, 1.9vw, 26px); font-weight: 800; margin-left: 1px; }
+.standing-word {
+  font-size: clamp(17px, 1.5vw, 20px);
+  font-weight: 700;
+  color: var(--on-light);
+  margin-left: 12px;
+}
+.standing-pill {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 3px 11px;
+  border-radius: 999px;
+  font-size: max(13px, 0.84em);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.standing-sentence {
+  margin: 12px 0 0;
+  font-size: max(14px, 0.9em);
+  line-height: 1.5;
+  color: #3d4757;
+}
+.standing-sentence b { color: var(--on-light); }
+
+/* the candidate's zone: number, ordinal and pill (text contrast measured on
+   the pill's own background: grey 8.9 : 1, amber 6.4 : 1, green 6.5 : 1) */
+.standing.tone-grey  .standing-number, .standing.tone-grey  .standing-ordinal { color: #4b5563; }
+.standing.tone-grey  .standing-pill  { background: #eceef2; color: #374151; }
+.standing.tone-amber .standing-number, .standing.tone-amber .standing-ordinal { color: #b45309; }
+.standing.tone-amber .standing-pill  { background: #fef3c7; color: #92400e; }
+.standing.tone-lightgreen .standing-number, .standing.tone-lightgreen .standing-ordinal,
+.standing.tone-green .standing-number, .standing.tone-green .standing-ordinal { color: #15803d; }
+.standing.tone-lightgreen .standing-pill,
+.standing.tone-green .standing-pill  { background: #dcfce7; color: #166534; }
+
+/* the decile band: ten cells, each coloured by the zone its decile is in */
+.band { position: relative; padding-top: 24px; }
+.band-cells { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
+.band-cell { height: 26px; border-radius: 4px; }
+.band-nums {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 6px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--on-light-muted);
+}
+.tone-grey.band-cell,       .legend-item i.tone-grey       { background: #e3e6ec; }
+.tone-amber.band-cell,      .legend-item i.tone-amber      { background: #fde68a; }
+.tone-lightgreen.band-cell, .legend-item i.tone-lightgreen { background: #bbf7d0; }
+.tone-green.band-cell,      .legend-item i.tone-green      { background: #86efac; }
+
+/* the candidate's position: a label, a triangle, and a dashed line straight
+   down through the band at exactly their percentile */
+.band-marker {
+  position: absolute;
+  top: 0;
+  bottom: 22px;
+  width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.marker-label {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  left: 0;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1d4ed8;
+  line-height: 14px;
+}
+.marker-arrow {
+  position: absolute;
+  top: 15px;
+  left: -6px;
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #1d4ed8;
+}
+.marker-line {
+  position: absolute;
+  top: 22px;
+  bottom: 0;
+  left: -1px;
+  border-left: 2px dashed #1d4ed8;
+}
+
+.band-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 12px;
+  font-size: max(12px, 0.8em);
+  font-weight: 600;
+  color: #3d4757;
+}
+.legend-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.legend-item i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+.standing-note {
+  margin: 18px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--surface-line);
+  font-size: max(12px, 0.8em);
+  line-height: 1.55;
+  color: var(--on-light-muted);
+}
+
+@media (max-width: 760px) {
+  .standing-main { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+}
+
+/* Demo mode: the notice, and the four blocks drawn greyed and locked. */
+.demo-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: var(--radius-small);
+  color: #9a3412;
+  padding: 10px 16px;
+  margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+  font-size: max(14px, 0.9em);
+  line-height: 1.45;
+}
+.demo-note .demo-lock { flex: 0 0 auto; display: inline-flex; margin-top: 2px; color: #b45309; }
+.demo-note b { font-weight: 700; }
+.block.is-locked { background: #f8f9fb; }
+.block.is-locked .block-head { cursor: default; }
+.block.is-locked .block-head h2 { color: #6b7280; }
+.block.is-locked .lock-mark { display: inline-flex; color: #6f7888; }
+
+@media print {
+  .standing { break-inside: avoid; }
 }

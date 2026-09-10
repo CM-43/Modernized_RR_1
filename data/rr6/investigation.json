@@ -220,13 +220,13 @@
       "label": "Objective",
       "text": "Review the data and identify the percentage of prey death in Mistveil and Bluebell Woods due to Dashed Coyotes.",
       "required": true,
-      "needed_for": "Every question — it defines which two zones matter"
+      "needed_for": "Every question: it defines which two zones matter"
     },
     "other_prey_diet": {
       "label": "Other preys' contribution towards Dashed Coyote diets",
       "text": "an insignificant portion of their diets",
       "required": true,
-      "needed_for": "Question 2 — the four prey make up all kills"
+      "needed_for": "Question 2: the four prey make up all kills"
     },
     "kill_rate_def": {
       "label": "Definition of kill rate",
@@ -486,5 +486,5 @@
       "needed_for": "Question 3"
     }
   },
-  "explanation": "Only the two zones named in the objective — Mistveil Woods and Bluebell Woods — matter. Everything about Teklan Hills and Rosefield is a distractor, and so is the introduction date of the coyotes."
+  "explanation": "Only the two zones named in the objective, Mistveil Woods and Bluebell Woods, matter. Everything about Teklan Hills and Rosefield is a distractor, and so is the introduction date of the coyotes."
 }

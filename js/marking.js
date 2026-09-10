@@ -26,6 +26,8 @@
      markMulti(values, options, answer)
      markCollect(journalIds, items, returnVisitIds, weight)
      markGame(content, answers)
+     weightedScore(result, phase_weights)   v1.2
+     percentile(weighted, benchmark)        v1.2
      answerKey(content)
 
    The rules themselves come from RD-Master-Doc R-D18..R-D22 and
@@ -546,7 +548,7 @@
     var totalScore = investigation.score + analysis.score + report.score + cScore;
     var totalOf = investigation.of + analysis.of + report.of + cas.cases.length;
 
-    return {
+    var out = {
       investigation: investigation,
       analysis: analysis,
       report: report,
@@ -556,6 +558,118 @@
       total: { score: totalScore, of: totalOf },
       late: lateCount
     };
+
+    /* ---- Where the candidate stands (v1.2, R-D42) ----
+       Only when the content carries a `benchmark` block. The raw scores
+       above are untouched: this is an extra reading of them, not a change
+       to marking. Absent block = these five fields are all null, and the
+       results screen draws no percentile card. */
+    var bench = content.version && content.version.benchmark;
+    if (bench) {
+      out.weighted = weightedScore(out, bench.phase_weights);
+      out.percentile = percentile(out.weighted, bench);
+      out.decile = decileOf(out.percentile);
+      out.topShare = 100 - out.percentile;
+      out.zone = zoneOf(out.percentile, bench.zones);
+    } else {
+      out.weighted = null;
+      out.percentile = null;
+      out.decile = null;
+      out.topShare = null;
+      out.zone = null;
+    }
+    return out;
+  }
+
+  /* ======================================================================
+     5b. WHERE THE CANDIDATE STANDS — the weighted score and the percentile
+         (v1.2, R-D41 to R-D43)
+
+     No database. The percentile is ESTIMATED from the score by a table in
+     the content file, and the results screen says so.
+
+     Why a weighted score and not the raw total: the raw total treats one
+     collected piece of information as worth exactly one Analysis answer,
+     which is not how anyone would rank a candidate. So each phase counts as
+     a share of 100 set in the content (25 each for RR6):
+
+         weighted = sum over the four phases of  weight x (score / out of)
+
+     With 24.5/29, 8/8, 9/13 and 3/6 that is 25 x (0.845 + 1 + 0.692 + 0.5)
+     = 75.9. Because it is always 0 to 100 whatever the item counts, one
+     percentile table can serve every version.
+     ====================================================================== */
+
+  var PHASE_SCORES = {
+    investigation: function (r) { return [r.investigation.score, r.investigation.of]; },
+    analysis:      function (r) { return [r.analysis.score, r.analysis.of]; },
+    report:        function (r) { return [r.report.score, r.report.of]; },
+    cases:         function (r) { return [r.casesScore, r.casesOf]; }
+  };
+
+  /* The weighted score out of 100, to ONE decimal place.
+
+     It is rounded here, once, and the percentile is then read off the
+     rounded figure. That way the number the candidate sees ("75.9 / 100")
+     is exactly the number anyone checking by hand would look up in the
+     table, and the two can never disagree by a rounding hair. */
+  function weightedScore(result, weights) {
+    var sum = 0;
+    var keys = Object.keys(PHASE_SCORES);
+    for (var i = 0; i < keys.length; i++) {
+      var w = (weights && typeof weights[keys[i]] === 'number') ? weights[keys[i]] : 0;
+      var pair = PHASE_SCORES[keys[i]](result);
+      if (pair[1] > 0) sum += w * (pair[0] / pair[1]);
+    }
+    return Math.round(sum * 10 + 1e-9) / 10;
+  }
+
+  /* Read a percentile off the content's table.
+
+     `benchmark.percentiles` is a list of [weighted score, percentile] points,
+     sorted by score. Between two points the percentile runs in a straight
+     line; the result is rounded to a whole number. Outside the table the
+     nearest end point holds, and the answer is always kept between 1 and 99
+     (nobody is told they beat everyone, or no one). With RR6's table,
+     68 -> 50, 75.9 -> 63 and 100 -> 99. */
+  function percentile(weighted, benchmark) {
+    var pts = (benchmark && benchmark.percentiles) || [];
+    if (!pts.length || typeof weighted !== 'number' || !isFinite(weighted)) return null;
+    var value;
+    if (weighted <= pts[0][0]) {
+      value = pts[0][1];
+    } else if (weighted >= pts[pts.length - 1][0]) {
+      value = pts[pts.length - 1][1];
+    } else {
+      value = pts[pts.length - 1][1];
+      for (var i = 1; i < pts.length; i++) {
+        if (weighted <= pts[i][0]) {
+          var x0 = pts[i - 1][0], y0 = pts[i - 1][1], x1 = pts[i][0], y1 = pts[i][1];
+          value = (x1 === x0) ? y1 : y0 + (y1 - y0) * (weighted - x0) / (x1 - x0);
+          break;
+        }
+      }
+    }
+    var whole = Math.floor(value + 0.5 + 1e-9);
+    return Math.max(1, Math.min(99, whole));
+  }
+
+  /* Decile 1 to 10: the 72nd percentile is in decile 8 (R-D41). */
+  function decileOf(p) {
+    if (typeof p !== 'number') return null;
+    return Math.max(1, Math.min(10, Math.ceil(p / 10)));
+  }
+
+  /* The last zone whose `from` is at or below the percentile. The index is
+     returned as well so the screen can colour it without reading meaning
+     out of the label. */
+  function zoneOf(p, zones) {
+    if (typeof p !== 'number' || !zones || !zones.length) return null;
+    var found = null;
+    for (var i = 0; i < zones.length; i++) {
+      if (zones[i].from <= p) found = { index: i, from: zones[i].from, label: zones[i].label };
+    }
+    return found;
   }
 
   /* ======================================================================
@@ -639,6 +753,7 @@
           id: cell.id || null, row: rep.grid.rows[i], col: rep.grid.columns[j],
           answer: ('fixed' in cell) ? cell.fixed : cell.answer,
           fixed: ('fixed' in cell),
+          decimals: (cell.accept && typeof cell.accept.decimals === 'number') ? cell.accept.decimals : null,
           any_of: (cell.accept && cell.accept.any_of) || []
         });
       }
@@ -665,6 +780,8 @@
       } else if (c.mechanism === 'number' || c.mechanism === 'numbers') {
         for (j = 0; j < c.boxes.length; j++) {
           entry.parts.push({ label: c.boxes[j].label, answer: String(c.boxes[j].answer),
+                             decimals: c.boxes[j].accept.decimals,
+                             any_of: c.boxes[j].accept.any_of || [],
                              explanation: c.boxes[j].explanation || '' });
         }
       } else if (c.mechanism === 'collect') {
@@ -696,6 +813,11 @@
                 explanation: rep.grid.explanation || '' }
       },
       cases: cases,
+      /* v1.2: what the results page's percentile card is read from, so the
+         printed key shows WK the mapping (weights, zones, table) and whether
+         this version is a demo. */
+      benchmark: content.version.benchmark || null,
+      resultsMode: content.version.results_mode || 'full',
       totals: {
         investigation: investigation.length,
         analysis: analysis.reduce(function (n, q) { return n + q.boxes.length; }, 0),
@@ -753,6 +875,101 @@
     return found;
   }
 
+  /* The percentile block (v1.2). Every complaint says what is wrong and what
+     it should look like, because WK will be editing these numbers by hand. */
+  function validateBenchmark(b, errors) {
+    var where = 'version.json: benchmark';
+    function isNum(v) { return typeof v === 'number' && isFinite(v); }
+    if (typeof b !== 'object' || Array.isArray(b)) {
+      errors.push(where + ' must be a block of settings in curly brackets, or left out altogether.');
+      return;
+    }
+    if (b.note !== undefined && typeof b.note !== 'string') {
+      errors.push(where + '."note" must be a piece of text in quotes.');
+    }
+
+    /* phase_weights: four numbers adding up to 100 */
+    var phases = ['investigation', 'analysis', 'report', 'cases'];
+    var w = b.phase_weights;
+    if (!w || typeof w !== 'object') {
+      errors.push(where + '."phase_weights" is missing. It needs a number for each of ' +
+                  'investigation, analysis, report and cases, adding up to 100.');
+    } else {
+      var sum = 0, allNumbers = true;
+      for (var i = 0; i < phases.length; i++) {
+        if (!isNum(w[phases[i]]) || w[phases[i]] < 0) {
+          errors.push(where + '."phase_weights"."' + phases[i] + '" must be a number of 0 or more.');
+          allNumbers = false;
+        } else {
+          sum += w[phases[i]];
+        }
+      }
+      if (allNumbers && Math.abs(sum - 100) > 1e-6) {
+        errors.push(where + '."phase_weights" add up to ' + sum + ', but they must add up to ' +
+                    'exactly 100 (25 each counts every phase equally).');
+      }
+    }
+
+    /* zones: sorted by "from", the first starting at 0 */
+    var z = b.zones;
+    if (!Array.isArray(z) || !z.length) {
+      errors.push(where + '."zones" must be a list of bands, each {"from": number, "label": "text"}, ' +
+                  'the first starting at 0.');
+    } else {
+      for (var j = 0; j < z.length; j++) {
+        if (!z[j] || !isNum(z[j].from) || z[j].from < 0 || z[j].from > 100) {
+          errors.push(where + ' zone ' + (j + 1) + ' needs a "from" percentile between 0 and 100.');
+        }
+        if (!z[j] || typeof z[j].label !== 'string' || z[j].label.trim() === '') {
+          errors.push(where + ' zone ' + (j + 1) + ' has no "label".');
+        }
+        if (j > 0 && z[j] && z[j - 1] && isNum(z[j].from) && isNum(z[j - 1].from) &&
+            z[j].from <= z[j - 1].from) {
+          errors.push(where + ' zones are out of order: zone ' + (j + 1) + ' starts at ' + z[j].from +
+                      ', which is not above zone ' + j + '\'s ' + z[j - 1].from +
+                      '. List them from the lowest "from" to the highest.');
+        }
+      }
+      if (z[0] && isNum(z[0].from) && z[0].from !== 0) {
+        errors.push(where + ' the first zone must start at 0, so every percentile falls in a zone. ' +
+                    'It starts at ' + z[0].from + '.');
+      }
+    }
+
+    /* percentiles: [score 0-100, percentile 1-99], sorted, never falling */
+    var pts = b.percentiles;
+    if (!Array.isArray(pts) || pts.length < 2) {
+      errors.push(where + '."percentiles" must be a list of at least two [weighted score, percentile] ' +
+                  'points, for example [[0,1],[100,99]].');
+    } else {
+      for (var k = 0; k < pts.length; k++) {
+        var pt = pts[k];
+        var label = where + ' point ' + (k + 1);
+        if (!Array.isArray(pt) || pt.length !== 2 || !isNum(pt[0]) || !isNum(pt[1])) {
+          errors.push(label + ' must be two numbers in square brackets: [weighted score, percentile].');
+          continue;
+        }
+        if (pt[0] < 0 || pt[0] > 100) {
+          errors.push(label + ' has a weighted score of ' + pt[0] + '; scores run from 0 to 100.');
+        }
+        if (pt[1] < 1 || pt[1] > 99) {
+          errors.push(label + ' has a percentile of ' + pt[1] + '; percentiles run from 1 to 99.');
+        }
+        var prev = pts[k - 1];
+        if (k > 0 && Array.isArray(prev) && isNum(prev[0]) && isNum(prev[1])) {
+          if (pt[0] <= prev[0]) {
+            errors.push(label + ' has a score of ' + pt[0] + ', which is not above the point before it (' +
+                        prev[0] + '). List the points from the lowest score to the highest.');
+          }
+          if (pt[1] < prev[1]) {
+            errors.push(label + ' has a percentile of ' + pt[1] + ', lower than the point before it (' +
+                        prev[1] + '). A higher score can never mean a lower percentile.');
+          }
+        }
+      }
+    }
+  }
+
   function validateContent(version, investigation, analysis, report, cases) {
     var errors = [];
     var i, j, k, ids, id;
@@ -770,10 +987,24 @@
     if (version && version.return_visit_weight !== undefined && version.return_visit_weight !== null) {
       need(typeof version.return_visit_weight === 'number' &&
            version.return_visit_weight >= 0 && version.return_visit_weight <= 1,
-           'version.json: "return_visit_weight" must be a number from 0 to 1 — it is the ' +
+           'version.json: "return_visit_weight" must be a number from 0 to 1. It is the ' +
            'share of a mark earned by an item fetched on a return visit to the Investigation ' +
            '(1 = no penalty, 0.5 = half a mark, 0 = only the first visit counts). ' +
            'Leave it out altogether for no penalty.');
+    }
+    /* v1.2 — the results page's two new switches. Both optional. */
+    if (version && version.results_mode !== undefined && version.results_mode !== null) {
+      need(version.results_mode === 'full' || version.results_mode === 'demo',
+           'version.json: "results_mode" must be "full" (every answer explained) or "demo" ' +
+           '(score and percentile only, the explanations locked). Leave it out for "full".');
+    }
+    if (version && version.results_mode === 'demo') {
+      need(version.labels && nonEmpty(version.labels.demo_note),
+           'version.json: "results_mode" is "demo", so labels."demo_note" must say what the ' +
+           'demo leaves out. It is the notice shown above the locked answers.');
+    }
+    if (version && version.benchmark !== undefined && version.benchmark !== null) {
+      validateBenchmark(version.benchmark, errors);
     }
     if (version && version.buttons) {
       var needButtons = ['complete_investigation', 'next_question', 'conclude',
@@ -1078,6 +1309,10 @@
     markMulti: markMulti,
     markCollect: markCollect,
     markGame: markGame,
+    weightedScore: weightedScore,
+    percentile: percentile,
+    decileOf: decileOf,
+    zoneOf: zoneOf,
     answerKey: answerKey
   };
 

@@ -16,6 +16,19 @@
 'use strict';
 
 const { chromium } = require('playwright');
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+/* The content is read from disk so the checks below compare the screen with
+   what the content file says, not with words typed into this script. */
+const ROOT = path.join(__dirname, '..');
+const VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/rr6/version.json'), 'utf8'));
+const INVESTIGATION = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/rr6/investigation.json'), 'utf8'));
+const CASES = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/rr6/cases.json'), 'utf8'));
+/* The rules engine, run here in Node, to check the percentile card against
+   an independent reading of the same table. */
+vm.runInThisContext(fs.readFileSync(path.join(ROOT, 'js/marking.js'), 'utf8'));
 
 const BASE = (process.argv[2] || 'http://localhost:8000').replace(/\/$/, '');
 const USER = 'CaseMentor9187';
@@ -29,6 +42,29 @@ function ok(condition, rule, what, detail) {
 }
 
 async function popupGo(page) { await page.click('[data-act="popup-go"]'); await page.waitForTimeout(120); }
+async function pausedWords(page) {
+  return page.evaluate(() => {
+    const el = document.querySelector('#timer-paused');
+    return el && !el.hidden ? el.textContent.trim() : null;
+  });
+}
+async function popupTitle(page) {
+  const h = await page.$('.modal h2');
+  return h ? (await h.textContent()).trim() : null;
+}
+/* Straight through to the results, pressing the one button each screen
+   offers. Starts on the Investigation. */
+async function runToResults(page) {
+  await page.click('[data-act="primary"]'); await popupGo(page); await popupGo(page);
+  for (let i = 0; i < 4; i++) { await page.click('[data-act="primary"]'); await popupGo(page); }
+  await page.click('[data-act="primary"]'); await popupGo(page);   // Conclude
+  await page.click('[data-act="primary"]'); await popupGo(page);   // Written -> Graph
+  await page.click('[data-act="primary"]'); await popupGo(page);   // Graph -> Visual
+  await page.click('[data-act="primary"]'); await popupGo(page);   // Visual -> Cases
+  await popupGo(page);                                             // cases tutorial
+  for (let n = 1; n <= 6; n++) { await page.click('[data-act="primary"]'); await popupGo(page); }
+  await page.waitForSelector('.results');
+}
 async function clock(page) { return (await page.textContent('#time-text')).trim(); }
 
 async function start(page, withClock) {
@@ -72,7 +108,31 @@ async function start(page, withClock) {
        'the clock stops while the Analysis tutorial popup is showing',
        `${beforeTutorial} became ${duringTutorial}`);
 
+    /* v1.2 item 2: the popup's title is the content's new one */
+    const analysisTitle = await popupTitle(page);
+    ok(analysisTitle === 'Moving to the Analysis' && analysisTitle === VERSION.popups.analysis_tutorial.title,
+       '5.1 v1.2', 'the Analysis tutorial popup is titled "Moving to the Analysis", from the content',
+       JSON.stringify(analysisTitle));
+    /* v1.2 item 6: "Timer paused" under the clock while it is paused */
+    const pausedNow = await pausedWords(page);
+    ok(pausedNow === 'Timer paused' && pausedNow === VERSION.labels.timer_paused, '3.3 v1.2',
+       'while the Analysis tutorial pauses the clock, "Timer paused" is shown, in the content\'s words',
+       JSON.stringify(pausedNow));
+    const pausedReadable = await page.evaluate(() => {
+      const el = document.querySelector('#timer-paused');
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      /* the words themselves ignore the mouse, so ask what is on top at that
+         point: it must be the header bar, not the popup's backdrop */
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return !!top && !!top.closest('.header-bar') && !top.closest('.modal-backdrop');
+    });
+    ok(pausedReadable, '3.3 v1.2',
+       'and it is on top, not hidden behind the popup\'s dimmed backdrop');
+
     await popupGo(page);
+    ok((await pausedWords(page)) === null, '3.3 v1.2',
+       'the words are gone the moment the clock runs again', String(await pausedWords(page)));
     await page.clock.runFor(60000);
     ok((await clock(page)) === 'Time remaining: 33 min', '3.3',
        'and starts again the moment the tutorial is dismissed', await clock(page));
@@ -83,8 +143,12 @@ async function start(page, withClock) {
     await page.clock.runFor(120000);
     ok(beforeRestart === (await clock(page)), '3.3 / 10.1',
        'the clock stops while the Restart confirmation is open');
+    ok((await pausedWords(page)) === VERSION.labels.timer_paused, '3.3 v1.2',
+       '"Timer paused" is shown while the Restart confirmation is open', String(await pausedWords(page)));
     await page.click('[data-act="popup-back"]');
     await page.waitForTimeout(120);
+    ok((await pausedWords(page)) === null, '3.3 v1.2',
+       'and gone again after Cancel', String(await pausedWords(page)));
 
     /* An ordinary confirmation does NOT pause it. */
     const boxes = await page.$$('.answer-field input');
@@ -95,6 +159,8 @@ async function start(page, withClock) {
     ok(beforeOrdinary !== (await clock(page)), '3.3',
        'an ordinary confirmation popup does NOT stop the clock',
        `stayed at ${beforeOrdinary}`);
+    ok((await pausedWords(page)) === null, '3.3 v1.2',
+       'and shows no "Timer paused"', String(await pausedWords(page)));
     await popupGo(page);
 
     /* Minute warnings at 5, 4, 3, 2 and 1 (rule 3.4).
@@ -198,6 +264,44 @@ async function start(page, withClock) {
     ok(tags >= 2, '3.5 / 9.7', 'late answers carry an "after time" tag', `${tags} tags`);
     const marks = await page.$eval('.tile .tile-score', el => el.textContent.trim());
     ok(marks !== null, '3.5', 'late answers are still marked normally', marks);
+
+    /* v1.2 item 10: the card's numbers agree with the content's table, read
+       independently here from the four tiles on the same screen */
+    const shown = await page.evaluate(() => {
+      const tiles = Array.from(document.querySelectorAll('.tile')).map(t =>
+        t.querySelector('.tile-score').textContent.trim().split(' / ').map(Number));
+      const txt = sel => { const e = document.querySelector(sel); return e ? e.textContent.trim() : null; };
+      return { tiles, number: txt('.standing-number'), ordinal: txt('.standing-ordinal'),
+               pill: txt('.standing-pill'), sentence: txt('.standing-sentence'),
+               marker: txt('.marker-label'), note: txt('.standing-note') };
+    });
+    const t = shown.tiles;
+    const fakeResult = { investigation: { score: t[0][0], of: t[0][1] }, analysis: { score: t[1][0], of: t[1][1] },
+                         report: { score: t[2][0], of: t[2][1] }, casesScore: t[3][0], casesOf: t[3][1] };
+    const w = MARKING.weightedScore(fakeResult, VERSION.benchmark.phase_weights);
+    const p = MARKING.percentile(w, VERSION.benchmark);
+    const zone = MARKING.zoneOf(p, VERSION.benchmark.zones);
+    ok(shown.number === String(p), '9.8 v1.2',
+       'the percentile on the card is the one the content\'s table gives for the tiles\' scores',
+       `card ${shown.number}, table ${p} (weighted ${w})`);
+    ok(shown.sentence && shown.sentence.indexOf('weighted score of ' + w + ' / 100') !== -1 &&
+       shown.sentence.indexOf('about ' + p + ' in 100') !== -1, '9.8 v1.2',
+       'the sentence carries the same weighted score and percentile', shown.sentence);
+    ok(shown.pill === `Decile ${Math.ceil(p / 10)} · top ${100 - p}% · ${zone.label}`, '9.8 v1.2',
+       'the pill gives the decile, the top share and the zone label from the content', shown.pill);
+    ok(shown.note === VERSION.benchmark.note, '9.8 v1.2', 'the footnote is the content\'s note');
+
+    /* the CSV gains two rows */
+    const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-act="csv"]')]);
+    const csv = fs.readFileSync(await download.path(), 'utf8');
+    ok(csv.indexOf('"Total","Weighted score","' + w + '","100"') !== -1, '9.8 v1.2',
+       'the CSV carries a Total, Weighted score row', csv.split('\r\n').slice(-3).join(' / '));
+    ok(csv.indexOf('"Total","Percentile","' + p + '",""') !== -1, '9.8 v1.2',
+       'and a Total, Percentile row', csv.split('\r\n').slice(-3).join(' / '));
+    /* v1.2 (Q21): the file name carries the title, never the version id */
+    const fileName = download.suggestedFilename();
+    ok(fileName === 'redrock-study-simulation-results.csv' && fileName.indexOf(VERSION.id) === -1, 'R-D43 / Q21',
+       'the CSV file is named after the title, without the version id', fileName);
     await page.close();
   }
 
@@ -310,7 +414,16 @@ async function start(page, withClock) {
 
     /* rule 8.2: cases are forward only and finished ones are struck through */
     await page.click('[data-act="primary"]'); await popupGo(page);
+    await page.waitForTimeout(150);
+    const casesTitle = await popupTitle(page);
+    ok(casesTitle === 'Moving to the Cases' && casesTitle === VERSION.popups.cases_tutorial.title,
+       '8.1 v1.2', 'the Cases tutorial popup is titled "Moving to the Cases", from the content',
+       JSON.stringify(casesTitle));
+    ok((await pausedWords(page)) === VERSION.labels.timer_paused, '3.3 v1.2',
+       '"Timer paused" is shown under the Cases tutorial', String(await pausedWords(page)));
     await popupGo(page);                                                  // cases tutorial
+    ok((await pausedWords(page)) === null, '3.3 v1.2',
+       'and gone once it is dismissed', String(await pausedWords(page)));
     await page.click('[data-act="primary"]'); await popupGo(page);        // case 2
     const caseTabs = await page.$$eval('.tab-sub', ts =>
       ts.map(t => ({ text: t.textContent.trim(), disabled: t.disabled,
@@ -472,7 +585,7 @@ async function start(page, withClock) {
     line = await page.$eval('#calc-input', i => i.value);
     ok(line.length > 0, '6.4', 'a result from the history can be dragged into the line', line);
 
-    /* the history survives into the Cases (rule 6.6) */
+    /* v1.2: the history does NOT come into the Cases (rule 6.6, corrected) */
     const before = await page.$$eval('.calc-history-row', r => r.length);
     for (let i = 0; i < 4; i++) { await page.click('[data-act="primary"]'); await popupGo(page); }
     await page.click('[data-act="primary"]'); await popupGo(page);        // Conclude
@@ -484,8 +597,285 @@ async function start(page, withClock) {
     await page.click('[data-act="primary"]'); await popupGo(page);
     await popupGo(page);                                                   // cases tutorial
     const after = await page.$$eval('.calc-history-row', r => r.length);
-    ok(after === before, '6.6', 'the calculator history is still there in the Cases',
-       `${before} rows became ${after}`);
+    ok(before >= 4 && after === 0, '6.6 v1.2',
+       'the Analysis history does not come into the Cases: Case 1 starts with an empty history',
+       `${before} rows in the Analysis, ${after} on Case 1`);
+    await page.close();
+  }
+
+  /* ==================================================================== *
+   * 5e. THE CALCULATOR'S LINE AND HISTORY ACROSS MOVES — rules 6.6, 6.7 v1.2
+   *     (RD-STAGE4-REVIEW item 7, its check exactly as written)
+   * ==================================================================== */
+  {
+    const page = await browser.newPage({ viewport: { width: 1402, height: 789 } });
+    await start(page, false);
+    await page.click('[data-act="primary"]'); await popupGo(page); await popupGo(page);
+
+    const calcState = () => page.evaluate(() => ({
+      line: document.querySelector('#calc-input').value,
+      result: document.querySelector('.calc-result').textContent.trim(),
+      history: Array.from(document.querySelectorAll('.calc-history-row')).map(r => r.textContent.replace(/\s+/g, ' ').trim())
+    }));
+
+    await page.click('#calc-input');
+    await page.keyboard.type('105/4');
+    await page.click('.calc-key.is-equals');
+    await page.waitForTimeout(150);
+    let s = await calcState();
+    ok(s.result === '26.25' && s.line === '105/4', '6.1', 'on Question 1, 105/4 = 26.25', JSON.stringify(s));
+
+    await page.click('[data-act="primary"]'); await popupGo(page);        // to Question 2
+    s = await calcState();
+    ok((await page.textContent('.q-heading')).trim() === 'Question 2', '6.7 v1.2', 'moved to Question 2');
+    ok(s.line === '', '6.7 v1.2', 'on arrival at Question 2 the input line is empty', JSON.stringify(s.line));
+    ok(s.result === '', '6.7 v1.2', 'and the result box is empty', JSON.stringify(s.result));
+    ok(s.history.length === 1 && /^105\/4 =\s*26\.25$/.test(s.history[0]), '6.6 v1.2',
+       'the history still shows 105/4 = 26.25', JSON.stringify(s.history));
+
+    await page.click('[data-act="go-investigation"]');
+    await page.waitForSelector('.section');
+    await page.click('[data-act="go-analysis"]');
+    await page.waitForTimeout(150);
+    s = await calcState();
+    ok(s.history.length === 1 && /26\.25$/.test(s.history[0]), '6.6 v1.2',
+       'the history survives a trip to the Investigation and back', JSON.stringify(s.history));
+
+    /* a half-typed line on the last question must not reach the Review page */
+    await page.click('[data-act="primary"]'); await popupGo(page);        // Q3
+    await page.click('[data-act="primary"]'); await popupGo(page);        // Q4
+    await page.fill('#calc-input', '7*6');
+    await page.click('.calc-key.is-equals');
+    await page.fill('#calc-input', '12+');
+    await page.click('[data-act="primary"]'); await popupGo(page);        // Review
+    s = await calcState();
+    ok((await page.textContent('.q-heading')).trim() === VERSION.labels.review_tab && s.line === '' && s.result === '',
+       '6.7 v1.2', 'on arrival at the Review page the line and the result box are empty', JSON.stringify(s));
+    ok(s.history.length === 2, '6.6 v1.2', 'and the Analysis history is all still there', JSON.stringify(s.history));
+    await page.fill('#calc-input', '3+4');
+
+    await page.click('[data-act="primary"]'); await popupGo(page);        // Conclude
+    await page.click('[data-act="primary"]'); await popupGo(page);        // Graph
+    await page.click('[data-act="primary"]'); await popupGo(page);        // Visual
+    await page.click('[data-act="primary"]'); await popupGo(page);        // Cases
+    await popupGo(page);                                                  // tutorial
+
+    const calcCases = CASES.cases.filter(c => c.calculator).map(c => c.number);
+    ok(calcCases.join(',') === '1,3,6', '6.5', 'the cases with a calculator are 1, 3 and 6', calcCases.join(','));
+    for (let n = 1; n <= 6; n++) {
+      const has = await page.$('.calc');
+      if (calcCases.indexOf(n) !== -1) {
+        s = await calcState();
+        ok(has && s.history.length === 0, '6.6 v1.2', `Case ${n} starts with an empty history`, JSON.stringify(s.history));
+        ok(has && s.line === '' && s.result === '', '6.7 v1.2',
+           `and on arrival at Case ${n} the line and the result box are empty`, JSON.stringify(s));
+        await page.fill('#calc-input', '50+170+' + n);
+        await page.click('.calc-key.is-equals');
+        await page.waitForTimeout(120);
+        s = await calcState();
+        ok(s.history.length === 1, '6.6', `within Case ${n} the history works as before`, JSON.stringify(s.history));
+      } else {
+        ok(has === null, '6.5', `Case ${n} has no calculator`);
+      }
+      if (n < 6) { await page.click('[data-act="primary"]'); await popupGo(page); }
+    }
+    await page.close();
+  }
+
+  /* ==================================================================== *
+   * 5f. ANSWERS COPIED INTO THE JOURNAL GO AT THE TOP — rule 5.4 v1.2
+   * ==================================================================== */
+  {
+    const page = await browser.newPage({ viewport: { width: 1402, height: 789 } });
+    await start(page, false);
+    for (const id of ['objective_line', 'ex1_2_1']) {
+      const chip = page.locator(`.chip[data-drag*='"${id}"']`).first();
+      await chip.scrollIntoViewIfNeeded();
+      await chip.dragTo(page.locator('.journal-list'));
+      await page.waitForTimeout(120);
+    }
+    await page.click('[data-act="primary"]'); await popupGo(page); await popupGo(page);
+    let boxes = await page.$$('.answer-field input');
+    await boxes[0].fill('0.4'); await boxes[1].fill('0.3');
+    await page.click('[data-act="primary"]'); await popupGo(page);
+    const titles1 = await page.$$eval('.journal-title', t => t.map(x => x.textContent.trim()));
+    ok(titles1[0] === 'Answer #1 Mistveil Woods' && titles1[1] === 'Answer #1 Bluebell Woods' &&
+       titles1[2] === 'Objective', '5.4 v1.2',
+       'after Question 1 its two answers are at the top, above what was collected', titles1.join(' | '));
+
+    /* a calculator result dropped in goes to the bottom, as before */
+    await page.fill('#calc-input', '2*3'); await page.click('.calc-key.is-equals'); await page.waitForTimeout(120);
+    await page.locator('.calc-result .chip').dragTo(page.locator('.journal-list'));
+    await page.waitForTimeout(150);
+
+    boxes = await page.$$('.answer-field input');
+    await boxes[0].fill('876'); await boxes[1].fill('1205');
+    await page.click('[data-act="primary"]'); await popupGo(page);
+    const titles2 = await page.$$eval('.journal-title', t => t.map(x => x.textContent.trim()));
+    ok(titles2[0] === 'Answer #1 Mistveil Woods' && titles2[1] === 'Answer #1 Bluebell Woods' &&
+       titles2[2] === 'Answer #2 Mistveil Woods' && titles2[3] === 'Answer #2 Bluebell Woods', '5.4 v1.2',
+       'after Question 2 the first four titles are Answer #1 Mistveil, #1 Bluebell, #2 Mistveil, #2 Bluebell',
+       titles2.join(' | '));
+    const collectedTitles = Object.keys(INVESTIGATION.items).map(id => INVESTIGATION.items[id].label);
+    ok(collectedTitles.indexOf(titles2[4]) !== -1, '5.4 v1.2',
+       'and the fifth is a collected item', titles2[4]);
+    ok(titles2[titles2.length - 1] === 'Calculator result', '5.4 v1.2',
+       'a calculator result still goes to the bottom', titles2.join(' | '));
+    await page.close();
+  }
+
+  /* ==================================================================== *
+   * 5g. THE ✕ IN AN ANSWER BOX IS A CLEAR CONTROL — item 4 (decoration)
+   * ==================================================================== */
+  {
+    const page = await browser.newPage({ viewport: { width: 1402, height: 789 } });
+    await start(page, false);
+    const chip = page.locator(`.chip[data-drag*='"objective_line"']`).first();
+    await chip.dragTo(page.locator('.journal-list'));
+    await page.waitForTimeout(120);
+    await page.click('[data-act="primary"]'); await popupGo(page); await popupGo(page);
+    await page.mouse.move(2, 2);
+    const look = sel => page.$eval(sel, el => {
+      const c = getComputedStyle(el);
+      return { color: c.color, bg: c.backgroundColor, title: el.getAttribute('title') };
+    });
+    const rest = await look('.answer-field .clear-btn');
+    await page.hover('.answer-field .clear-btn');
+    await page.waitForTimeout(250);
+    const hover = await look('.answer-field .clear-btn');
+    const red = rgb => { const m = rgb.match(/\d+/g).map(Number); return m[0] > 150 && m[0] > m[1] * 1.8 && m[0] > m[2] * 1.8; };
+    ok(rest.title === 'Clear', 'item 4', 'the box\'s ✕ carries the tooltip "Clear"', JSON.stringify(rest));
+    ok(red(rest.color), 'item 4', 'at rest the ✕ is red, not grey', rest.color);
+    ok(red(hover.bg) && hover.color === 'rgb(255, 255, 255)' && hover.bg !== rest.bg, 'item 4',
+       'on hover it is a white ✕ on a red disc', JSON.stringify(hover));
+    await page.mouse.move(2, 2);
+    await page.waitForTimeout(200);
+    const journalX = await look('.journal-item .mini-btn.remove');
+    ok(journalX.color === 'rgb(91, 102, 119)' && journalX.bg === 'rgb(255, 255, 255)', 'item 4',
+       'the journal entry\'s ✕ is unchanged from v1.1 (grey on white)', JSON.stringify(journalX));
+    await page.close();
+  }
+
+  /* ==================================================================== *
+   * 5h. DEMO MODE — item 11, on a copy of the content with
+   *     results_mode "demo" (served in place of version.json for this page)
+   * ==================================================================== */
+  {
+    const page = await browser.newPage({ viewport: { width: 1402, height: 789 } });
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.route('**/data/rr6/version.json', route => {
+      const demo = JSON.parse(JSON.stringify(VERSION));
+      demo.results_mode = 'demo';
+      route.fulfill({ contentType: 'application/json', body: JSON.stringify(demo) });
+    });
+    await start(page, false);
+    const chip = page.locator(`.chip[data-drag*='"objective_line"']`).first();
+    await chip.dragTo(page.locator('.journal-list'));
+    await page.waitForTimeout(120);
+    await runToResults(page);
+
+    const d = await page.evaluate(() => ({
+      markRows: document.querySelectorAll('.mark-row').length,
+      optionRows: document.querySelectorAll('.option-row').length,
+      reasons: document.querySelectorAll('.mark-reason').length,
+      reasonsToggle: document.querySelectorAll('[data-act="toggle-reasons"]').length,
+      bodies: document.querySelectorAll('.block-body').length,
+      blocks: Array.from(document.querySelectorAll('.block')).map(b => ({
+        locked: b.classList.contains('is-locked'),
+        title: b.querySelector('h2').textContent.trim(),
+        score: (b.querySelector('.chev') || {}).textContent })),
+      csv: !!document.querySelector('[data-act="csv"]'),
+      print: !!document.querySelector('[data-act="print"]'),
+      restart: !!document.querySelector('[data-act="restart-now"]'),
+      standing: !!document.querySelector('.standing .standing-number'),
+      tiles: document.querySelectorAll('.tile').length,
+      note: (document.querySelector('.demo-note') || {}).textContent,
+      noteHasLock: !!document.querySelector('.demo-note svg'),
+      text: document.body.innerText
+    }));
+    ok(d.markRows === 0 && d.optionRows === 0 && d.reasons === 0, '9.8 v1.2 demo',
+       'no answer rows, no ✓/✗, no explanations are drawn', JSON.stringify({ markRows: d.markRows, optionRows: d.optionRows, reasons: d.reasons }));
+    ok(d.reasonsToggle === 0 && d.bodies === 0, '9.8 v1.2 demo', 'no reasons toggle and nothing to expand');
+    ok(d.blocks.length === 4 && d.blocks.every(b => b.locked && /\d+(\.\d)? \/ \d+/.test(b.score)), '9.8 v1.2 demo',
+       'the four phase blocks are drawn locked, heading and score visible', JSON.stringify(d.blocks));
+    ok(!d.csv && !d.print && d.restart, '9.8 v1.2 demo', 'the CSV and Print buttons are absent; Restart remains',
+       JSON.stringify({ csv: d.csv, print: d.print, restart: d.restart }));
+    ok(d.standing && d.tiles === 5, '9.8 v1.2 demo', 'the percentile card and the five tiles are present');
+    ok(d.note && d.note.trim() === VERSION.labels.demo_note && d.noteHasLock, '9.8 v1.2 demo',
+       'the notice is the content\'s demo_note, with a lock icon', JSON.stringify(d.note));
+    const explanations = [INVESTIGATION.explanation].concat(CASES.cases.map(c => c.explanation)).filter(Boolean);
+    ok(explanations.every(e => d.text.indexOf(e.slice(0, 40)) === -1), '9.8 v1.2 demo',
+       'no worked explanation from the content appears anywhere on the page');
+
+    await page.click('.block .block-head');
+    await page.waitForTimeout(200);
+    const afterClick = await page.evaluate(() => ({
+      bodies: document.querySelectorAll('.block-body').length,
+      rows: document.querySelectorAll('.mark-row').length }));
+    ok(afterClick.bodies === 0 && afterClick.rows === 0, '9.8 v1.2 demo',
+       'clicking a locked block does not open it', JSON.stringify(afterClick));
+    await page.focus('.block .block-head').catch(() => {});
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(150);
+    ok((await page.$$eval('.mark-row', r => r.length)) === 0, '9.8 v1.2 demo', 'nor does the keyboard');
+    ok(errors.length === 0, '—', 'no JavaScript errors in demo mode', errors.join(' | '));
+    await page.close();
+  }
+
+  /* ==================================================================== *
+   * 5i. NO EM DASH IN ANYTHING THE PROGRAM DRAWS FOR A CANDIDATE
+   *     Every screen's visible text is read. On the results page the
+   *     content's own "needed for" lines and explanations are taken out
+   *     first: three of them contain em dashes, and data/rr6/investigation.json
+   *     is not ours to edit in this round (HANDOVER §5).
+   * ==================================================================== */
+  {
+    const page = await browser.newPage({ viewport: { width: 1402, height: 789 } });
+    const dashes = [];
+    const read = async where => {
+      const text = await page.evaluate(() => document.body.innerText);
+      if (text.indexOf('\u2014') !== -1) dashes.push(where + ': ' + text.slice(Math.max(0, text.indexOf('\u2014') - 40), text.indexOf('\u2014') + 20));
+      return text;
+    };
+    await page.goto(BASE + '/index.html', { waitUntil: 'networkidle' });
+    await read('login');
+    await page.fill('#login-user', USER); await page.fill('#login-pass', PASS);
+    await page.click('#login-form button[type=submit]');
+    await page.waitForSelector('[data-act="start"]');
+    await read('start');
+    await page.click('[data-act="start"]'); await page.waitForSelector('.section');
+    let screens = 2;
+    await read('Investigation'); screens++;
+    const chip = page.locator(`.chip[data-drag*='"objective_line"']`).first();
+    await chip.dragTo(page.locator('.journal-list'));
+    await page.click('[data-act="primary"]'); await read('to-Analysis popup'); await popupGo(page);
+    await read('Analysis tutorial'); await popupGo(page);
+    for (let i = 0; i < 4; i++) {
+      const bx = await page.$$('.answer-field input');
+      for (const b of bx) await b.fill('1');
+      await read('Question ' + (i + 1)); screens++;
+      await page.click('[data-act="primary"]'); await popupGo(page);
+    }
+    await read('Review'); await page.click('[data-act="primary"]'); await popupGo(page);
+    await read('Written'); await page.click('[data-act="primary"]'); await popupGo(page);
+    await read('Graph'); await page.click('[data-act="primary"]'); await popupGo(page);
+    for (const id of ['g_mist_coy', 'g_blue_coy', 'g_mist_ill', 'g_blue_ill']) await page.fill(`[data-focus-key="grid:${id}"]`, '5');
+    await page.click('input[value="pie"]').catch(() => {});
+    await read('Visual'); await page.click('[data-act="primary"]'); await popupGo(page);
+    await read('Cases tutorial'); await popupGo(page);
+    for (let n = 1; n <= 6; n++) { await read('Case ' + n); screens++; await page.click('[data-act="primary"]'); await popupGo(page); }
+    await page.waitForSelector('.results');
+    for (const k of ['analysis', 'report', 'cases']) await page.click(`[data-act="toggle-block"][data-id="${k}"]`);
+    for (const k of ['investigation', 'analysis', 'report', 'cases']) await page.click(`[data-act="toggle-reasons"][data-id="${k}"]`);
+    let resultsText = await page.evaluate(() => document.body.innerText);
+    const contentLines = [INVESTIGATION.explanation].concat(
+      Object.keys(INVESTIGATION.items).map(id => INVESTIGATION.items[id].needed_for || ''));
+    contentLines.filter(x => x && x.indexOf('\u2014') !== -1).forEach(x => { resultsText = resultsText.split(x).join(''); });
+    if (resultsText.indexOf('\u2014') !== -1) dashes.push('results: ' + resultsText.slice(resultsText.indexOf('\u2014') - 60, resultsText.indexOf('\u2014') + 20));
+    ok(screens >= 12 && resultsText.length > 2000, 'R-D43', 'the dash sweep read every screen and the whole results page',
+       `${screens} screens, ${resultsText.length} characters of results`);
+    ok(dashes.length === 0, 'R-D43', 'no em dash in any text the program draws for a candidate', dashes.join(' | '));
     await page.close();
   }
 

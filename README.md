@@ -80,7 +80,7 @@ This is the part the whole design exists for. **No program file is touched.**
 
    | File | What it holds |
    |---|---|
-   | `version.json` | Title, time limit, number of cases, every button word and popup message, the minute-warning wording, the journal's hint line, and the return-visit weight. |
+   | `version.json` | Title, time limit, number of cases, every button word and popup message, the minute-warning wording, the journal's hint line, the "Timer paused" words, the return-visit weight, whether the results are full or a demo, and the percentile table. |
    | `investigation.json` | The study text, the exhibits, and every piece of information the candidate can drag. |
    | `analysis.json` | The questions, their answer boxes and their worked explanations. |
    | `report.json` | The written report with its blanks, the chart question, and the grid of figures. |
@@ -128,15 +128,42 @@ every version afterwards.
 ### The other things `version.json` controls
 
 ```json
+"title": "Redrock Study Simulation",
+"scenario": "Aldarin Island: Dashed Coyotes",
+
 "return_visit_weight": 0.5,
 
-"labels": { "journal_mark_hint": "Mark (!) for important items" },
+"labels": {
+  "journal_mark_hint": "Mark (!) for important items",
+  "timer_paused": "Timer paused",
+  "demo_note": "This is the free demo, which shows your score and percentile only. Our full simulations come with every answer explained in detail."
+},
 
 "warnings": {
   "title": "{n} Minute Warning",
   "text":  "{n} minutes remain to finish your work for both the study and the cases"
+},
+
+"results_mode": "full",
+
+"benchmark": {
+  "note": "This percentile is our own estimate for this simulation, not a McKinsey figure. …",
+  "phase_weights": { "investigation": 25, "analysis": 25, "report": 25, "cases": 25 },
+  "zones": [ { "from": 0,  "label": "Below 70th" },
+             { "from": 70, "label": "Borderline" },
+             { "from": 80, "label": "Likely pass" },
+             { "from": 90, "label": "Comfortable" } ],
+  "percentiles": [[0,1],[20,5],[35,12],[45,20],[55,30],[62,40],[68,50],[74,60],
+                  [79,68],[84,75],[88,80],[91,85],[94,90],[96,94],[98,97],[100,99]]
 }
 ```
+
+- **`title`** carries **no simulation number**. The versions get moved around,
+  so they are told apart by repository and link, never on screen. The
+  **`scenario`** line is drawn beneath it. The downloaded results file is
+  named after the title too (`redrock-study-simulation-results.csv`), never
+  after the `id`. On em dashes (—) in anything a candidate reads: use one only
+  where it reads better than a colon or a comma, never out of habit.
 
 - **`return_visit_weight`** is what a piece of information is worth if the
   candidate went back to the Investigation to fetch it after first leaving.
@@ -152,6 +179,54 @@ every version afterwards.
   remaining. `{n}` is replaced by the number of minutes. The notice carries a
   ✕ to dismiss it and hides itself after four seconds; the clock never pauses
   for it.
+- **`labels.timer_paused`** is shown under the clock while it is paused: during
+  the two popups that open the Analysis and the Cases, and while the Restart
+  question is open. Leave it out and nothing is shown there.
+- **`results_mode`** decides what the results page gives away.
+  - `"full"` (or the line left out): every answer, marked and explained.
+  - `"demo"`: the percentile card, the four score tiles, the total and the
+    summary line are shown as usual; then `labels.demo_note` with a lock; then
+    the four phase blocks **greyed out and locked**, heading and score only.
+    No ticks or crosses, no explanations, nothing to open, and **no Print or
+    CSV button** (the CSV lists the expected answers). A demo needs a
+    `demo_note`; `tests.html` says so if it is missing.
+
+  **A free demo is a content switch, not a code change.** Copy a version's
+  folder, set `"results_mode": "demo"`, and give it its own `benchmark` if its
+  table should be more conservative.
+
+  **Do not upload `tools/answer-key.html` with a demo version.** It prints
+  every answer. (The content files themselves can be read by anyone who looks
+  for them. That is true of every published version and has been accepted.)
+- **`benchmark`** is the "Where you stand" card at the top of the results. Leave
+  the whole block out and no card is drawn. It is an **estimate from a table**;
+  there is no database behind it, and its footnote says so.
+  - **`phase_weights`**: how much each phase counts, out of 100. They must add
+    up to exactly 100. With 25 each, every phase counts a quarter, so one
+    collected item is no longer worth the same as one Analysis answer. The
+    **weighted score** is each phase's score divided by its best possible,
+    times its weight, added up: 24.5/29, 8/8, 9/13 and 3/6 give
+    25 × (0.845 + 1 + 0.692 + 0.5) = **75.9**. The score tiles still show the
+    ordinary counts; nothing about marking changes.
+  - **`percentiles`**: a list of `[weighted score, percentile]` points, from
+    the lowest score to the highest. Scores run 0 to 100, percentiles 1 to 99,
+    and a percentile may never go down as the score goes up. Between two
+    points the percentile runs in a straight line and is rounded to a whole
+    number: 75.9 lies between `[74,60]` and `[79,68]`, so it reads as
+    60 + (1.9 ÷ 5) × 8 = 63.0, the **63rd**. The weighted score is rounded to
+    one decimal first, so the figure on screen is the one you look up.
+    Outside the table the nearest end point holds.
+  - **`zones`**: bands of percentile, lowest first, the first starting at 0.
+    The candidate's zone label is printed in the pill ("Decile 7 · top 38% ·
+    Below 70th"), and the zones colour the decile band. **The colours go by
+    position, not by label:** the first zone is grey, the highest is green,
+    the one below it light green, any others amber. Never red.
+  - **`note`**: the footnote under the card.
+
+  `tools/answer-key.html` prints the weights, the zones and the table, so you
+  can see the mapping without opening the file, and `tests.html` refuses a
+  table that is out of order, weights that do not add up to 100, or zones that
+  do not start at 0, each in plain English.
 
 ### How a right answer is decided
 
@@ -198,6 +273,10 @@ groups separately, with each return-visit item tagged "½ mark".
 Items collected that were **not** required cost nothing at all — they are
 listed as "collected, but not needed" and that is the end of it.
 
+**Keep the start screen short.** It has to fit a 16:9 lesson box as small as
+1000 × 562 without a scrollbar. If a version's phase descriptions or title are
+longer, run `reference/layout-check.js`, which measures exactly that.
+
 ---
 
 ## 6. Put it on the web
@@ -210,14 +289,18 @@ The simulation is hosted on GitHub Pages and shown inside a lesson.
    away the `css/`, `js/` and `data/` folders, and gives no warning at all.
    This cost the previous project three uploads that appeared to do nothing.
 3. Turn on GitHub Pages for the repository.
-4. Put this in the lesson:
+4. Put this in the lesson. It is a **16:9 box**, the same as Sea Wolf's
+   lessons use: the lesson page scrolls rather than the simulation being
+   squeezed under the course platform's header, and candidates are expected to
+   press the full-screen button.
 
    ```html
-   <iframe src="https://<user>.github.io/<repo>/index.html"
-           allowfullscreen allow="fullscreen"
-           style="width:100%;height:calc(100vh - 150px);min-height:560px;border:0;display:block">
-   </iframe>
+   <iframe src="https://<user>.github.io/<repo>/index.html" allowfullscreen allow="fullscreen"
+           style="width:100%;aspect-ratio:16/9;border:0;display:block"></iframe>
    ```
+
+   Keep `allowfullscreen allow="fullscreen"`: without them the browser refuses
+   full screen inside the lesson and the full-screen button hides itself.
 
 Check afterwards that `css/`, `js/` and `data/` really are folders in the
 repository, and not a heap of loose files.
@@ -243,8 +326,18 @@ python3 reference/difftest.py          # marks 5,000 random runs with two
 
 node reference/layout-check.js http://localhost:8000
                                        # plays the whole simulation at six
-                                       # window sizes and measures that
-                                       # everything is still where it belongs.
+                                       # window sizes and inside the lesson's
+                                       # 16:9 box, and measures that
+                                       # everything is still where it belongs
+                                       # and that nothing scrolls that should not.
+
+node reference/behaviour-check.js http://localhost:8000
+node reference/play-key.js http://localhost:8000
+node reference/key-compare.js http://localhost:8000
+                                       # the clock, journal, calculator and
+                                       # demo mode; the answer key played
+                                       # through the screens; the printed key
+                                       # against the Word key.
 ```
 
 ---

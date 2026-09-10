@@ -17,6 +17,10 @@
 
    The pass is 29 / 29, 8 / 8, 13 / 13, 6 / 6 and 56 / 56.
 
+   v1.2: the percentile is READ OFF THE SCREEN too, from the "Where you
+   stand" card: the key must show the 99th, the run of mistakes the 62nd
+   (weighted 75.5), and the return-visit run the 98th (weighted 98.7).
+
    It also plays a deliberately wrong run afterwards, because a marker that
    awards everything is not yet known to be a marker.
    ========================================================================== */
@@ -72,6 +76,17 @@ async function tiles(page) {
     const score = t.querySelector('.tile-score').textContent.trim();
     return [name, score];
   }));
+}
+
+/* What the "Where you stand" card says, exactly as drawn. */
+async function standing(page) {
+  return page.evaluate(() => {
+    const txt = sel => { const e = document.querySelector(sel); return e ? e.textContent.trim() : null; };
+    const sentence = txt('.standing-sentence') || '';
+    const w = /weighted score of ([\d.]+) \/ 100/.exec(sentence);
+    return { percentile: (txt('.standing-number') || '') + (txt('.standing-ordinal') || ''),
+             weighted: w ? w[1] : null, pill: txt('.standing-pill'), marker: txt('.marker-label') };
+  });
 }
 
 /* ---------------------------------------------------------------- the key */
@@ -149,7 +164,7 @@ async function playTheKey(page) {
   }
 
   await page.waitForSelector('.results');
-  return tiles(page);
+  return { marks: await tiles(page), standing: await standing(page) };
 }
 
 /* ------------------------------------------------------- a run of mistakes */
@@ -239,7 +254,7 @@ async function playWrong(page) {
   const marks = await tiles(page);
   const wrongRows = await page.$$eval('.mark-row.is-wrong', r => r.length);
   const reasons = await page.$$eval('.mark-row.is-wrong .mark-reason', r => r.length);
-  return { marks, wrongRows, reasons };
+  return { marks, wrongRows, reasons, standing: await standing(page) };
 }
 
 /* ------------------------------------------ going back for three items ---
@@ -324,15 +339,21 @@ async function playWithAReturnVisit(page) {
      three-way list, and counting those as well would have made this check
      report seven groups where four were asked for — a selector that matches
      more than the thing being measured is not a measurement. */
-  const groups = await page.$$eval(
-    '.block:nth-of-type(1) .collect-lists > div h3', hs => hs.map(h => h.textContent.trim()));
-  const tags = await page.$$eval(
-    '.block:nth-of-type(1) .col-return .earned-tag', t => t.map(x => x.textContent.trim()));
+  /* v1.2: the first .block, found by class rather than by position among
+     <section> elements. The "Where you stand" card is a <section> too, so
+     `.block:nth-of-type(1)` stopped meaning the Investigation block and
+     matched nothing, which this check correctly reported as a failure. */
+  const groups = await page.evaluate(() => Array.from(
+    document.querySelectorAll('.block')[0].querySelectorAll('.collect-lists > div h3'))
+    .map(h => h.textContent.trim()));
+  const tags = await page.evaluate(() => Array.from(
+    document.querySelectorAll('.block')[0].querySelectorAll('.col-return .earned-tag'))
+    .map(x => x.textContent.trim()));
   const csvColumn = await page.evaluate(() => {
     const head = document.querySelector('.results-actions');
     return !!head;
   });
-  return { marks, groups, tags, csvColumn };
+  return { marks, groups, tags, csvColumn, standing: await standing(page) };
 }
 
 /* ------------------------------------------------------------------------ */
@@ -345,9 +366,16 @@ async function playWithAReturnVisit(page) {
   page.on('pageerror', e => errors.push(e.message));
 
   await login(page);
-  const keyMarks = await playTheKey(page);
+  const keyRun = await playTheKey(page);
+  const keyMarks = keyRun.marks;
   console.log('The answer key, played through the interface:');
   keyMarks.forEach(([name, score]) => console.log('  ' + name.padEnd(16) + score));
+  console.log('  ' + 'Where you stand'.padEnd(16) + keyRun.standing.percentile + ' percentile, weighted ' +
+              keyRun.standing.weighted + ' / 100  (' + keyRun.standing.pill + ')');
+  ok(keyRun.standing.percentile === '99th', 'the key shows the 99th percentile on the results screen',
+     `shows ${keyRun.standing.percentile}`);
+  ok(keyRun.standing.weighted === '100', 'with a weighted score of 100', `shows ${keyRun.standing.weighted}`);
+  ok(keyRun.standing.marker === 'You · 99th', 'and the band\'s marker says the same', keyRun.standing.marker);
 
   const expected = { Investigation: '29 / 29', Analysis: '8 / 8', Report: '13 / 13',
                      Cases: '6 / 6', Total: '56 / 56' };
@@ -364,8 +392,15 @@ async function playWithAReturnVisit(page) {
   console.log('');
   console.log('A run with deliberate mistakes:');
   wrong.marks.forEach(([name, score]) => console.log('  ' + name.padEnd(16) + score));
+  console.log('  ' + 'Where you stand'.padEnd(16) + wrong.standing.percentile + ' percentile, weighted ' +
+              wrong.standing.weighted + ' / 100  (' + wrong.standing.pill + ')');
   console.log('  wrong answers shown: ' + wrong.wrongRows +
               ', each with its worked explanation: ' + wrong.reasons);
+  /* 25 x (28/29 + 7/8 + 11/13 + 2/6) = 75.5; the table has 74 -> 60 and
+     79 -> 68, so 60 + 1.5/5 x 8 = 62.4, rounded to 62. */
+  ok(wrong.standing.weighted === '75.5', 'the run of mistakes shows a weighted score of 75.5',
+     `shows ${wrong.standing.weighted}`);
+  ok(wrong.standing.percentile === '62nd', 'and the 62nd percentile', `shows ${wrong.standing.percentile}`);
 
   /* Worked out by hand from the mistakes made above, so that this is a
      prediction the product has to meet rather than a note of what it did:
@@ -404,6 +439,12 @@ async function playWithAReturnVisit(page) {
   console.log('');
   console.log('A run that went back to the Investigation for three items:');
   back.marks.forEach(([name, score]) => console.log('  ' + name.padEnd(16) + score));
+  console.log('  ' + 'Where you stand'.padEnd(16) + back.standing.percentile + ' percentile, weighted ' +
+              back.standing.weighted + ' / 100  (' + back.standing.pill + ')');
+  /* 25 x (27.5/29) + 75 = 98.7; 98 -> 97 and 100 -> 99, so 97.7, rounded to 98 */
+  ok(back.standing.weighted === '98.7' && back.standing.percentile === '98th',
+     'the return-visit run shows 98.7 / 100 and the 98th percentile',
+     `shows ${back.standing.weighted} and ${back.standing.percentile}`);
 
   const expectedBack = { Investigation: '27.5 / 29', Analysis: '8 / 8', Report: '13 / 13',
                          Cases: '6 / 6', Total: '54.5 / 56' };
@@ -426,7 +467,7 @@ async function playWithAReturnVisit(page) {
 
   console.log('');
   console.log('checks made: ' + checks);
-  if (checks < 28) {
+  if (checks < 34) {
     console.log('RESULT: FAILED — too few checks were made for this run to mean anything.');
     process.exit(1);
   }

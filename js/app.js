@@ -268,6 +268,9 @@
     var textEl = byId('time-text');
     var fillEl = byId('time-fill');
     if (textEl) textEl.textContent = clockText();
+    var pausedEl = byId('timer-paused');
+    if (pausedEl) pausedEl.hidden = !state.timer.paused;
+    document.body.classList.toggle('clock-paused', !!state.timer.paused);
     if (fillEl) {
       var fraction = state.timer.total > 0
         ? Math.max(0, state.timer.secondsLeft) / state.timer.total : 0;
@@ -352,6 +355,16 @@
     var target = list || state.journal;
     for (var i = 0; i < target.length; i++) if (target[i].id === entry.id) return false;
     target.push(entry);
+    return true;
+  }
+
+  /* Put an entry at a given position rather than at the end. Used only for
+     the copied Analysis answers, which form a block at the top. */
+  function insertIntoJournal(entry, position) {
+    for (var i = 0; i < state.journal.length; i++) {
+      if (state.journal[i].id === entry.id) return false;
+    }
+    state.journal.splice(Math.max(0, Math.min(position, state.journal.length)), 0, entry);
     return true;
   }
 
@@ -592,6 +605,27 @@
       result: text
     });
     refreshCalc();
+  }
+
+  /* Rule 6.7 v1.2: the input line and the result box are empty on arrival at
+     every question, the Review page and every case. The old simulation drew
+     each of those as a page of its own and never saved the line, so moving
+     on always left it blank. The history is NOT touched by this. */
+  function clearCalcLine() {
+    if (invalidHandle) { clearTimeout(invalidHandle); invalidHandle = null; }
+    state.calc.input = '';
+    state.calc.result = null;
+    state.calc.error = null;
+  }
+
+  /* Rule 6.6 v1.2: each case that has a calculator starts with an EMPTY
+     history, and finishing the case throws that history away. The history
+     from the Analysis does not come with it: in the old simulation the line
+     that would have restored it on the case pages is commented out
+     (case_1.js line 332), so candidates always met an empty one. */
+  function clearCalcHistory() {
+    clearCalcLine();
+    state.calc.history = [];
   }
 
   function calcKey(label) {
@@ -845,7 +879,15 @@
             textToHtml(v.labels.cases_tab) + ' (' + v.case_count + ')</span>' +
         '</div>' +
         '<div class="header-middle">' +
-          '<span class="time-text" id="time-text">' + esc(clockText()) + '</span>' +
+          /* "Timer paused" sits UNDER the time text while the clock is stopped
+             (rule 3.3 v1.2), as the real game prints "Timer Paused" under its
+             clock. It is positioned over the bar area rather than taking a
+             line of its own, so the header never changes height and neither
+             the clock nor the Part tabs move when it comes and goes. */
+          '<span class="time-text-wrap">' +
+            '<span class="time-text" id="time-text">' + esc(clockText()) + '</span>' +
+            pausedHtml() +
+          '</span>' +
           '<div class="time-bar"><div class="time-bar-fill" id="time-fill" style="width:' +
             (fraction * 100) + '%"></div></div>' +
         '</div>' +
@@ -856,6 +898,15 @@
             : '') +
         '</div>' +
       '</div>';
+  }
+
+  /* The words come from the content (labels.timer_paused). A version that
+     leaves the label out simply shows nothing here. */
+  function pausedHtml() {
+    var words = state.content.version.labels.timer_paused;
+    if (!words) return '';
+    return '<span class="timer-paused" id="timer-paused" role="status"' +
+             (state.timer.paused ? '' : ' hidden') + '>' + esc(words) + '</span>';
   }
 
   function fullscreenIcon() {
@@ -1093,17 +1144,24 @@
              '<div class="card start-card">' +
                '<h1>' + esc(v.title) + '</h1>' +
                '<p class="start-scenario">' + esc(v.scenario) + '</p>' +
+               /* v1.2: the four phases as a 2 x 2 grid, and the three facts
+                  and the Start button on ONE row beneath, facts left, button
+                  right (RD-STAGE3B-EVIDENCE/start-screen-v2.png). That is what
+                  lets the card fit a 16:9 lesson box as small as 1000 x 562
+                  without scrolling. */
                '<div class="start-phases">' + phases + '</div>' +
-               '<div class="start-facts">' +
-                 '<div class="start-fact"><div class="k">Time limit</div>' +
-                   '<div class="v">' + v.time_limit_minutes + ' minutes</div></div>' +
-                 '<div class="start-fact"><div class="k">' + textToHtml(v.labels.cases_tab) + '</div>' +
-                   '<div class="v">' + v.case_count + '</div></div>' +
-                 '<div class="start-fact"><div class="k">One clock</div>' +
-                   '<div class="v">Both parts</div></div>' +
-               '</div>' +
-               '<div class="start-actions">' +
-                 '<button class="btn" type="button" data-act="start">Start</button>' +
+               '<div class="start-bottom">' +
+                 '<div class="start-facts">' +
+                   '<div class="start-fact"><div class="k">Time limit</div>' +
+                     '<div class="v">' + v.time_limit_minutes + ' minutes</div></div>' +
+                   '<div class="start-fact"><div class="k">' + textToHtml(v.labels.cases_tab) + '</div>' +
+                     '<div class="v">' + v.case_count + '</div></div>' +
+                   '<div class="start-fact"><div class="k">One clock</div>' +
+                     '<div class="v">Both parts</div></div>' +
+                 '</div>' +
+                 '<div class="start-actions">' +
+                   '<button class="btn" type="button" data-act="start">Start</button>' +
+                 '</div>' +
                '</div>' +
              '</div>' +
            '</div>';
@@ -1259,19 +1317,26 @@
   function reportGraphHtml() {
     var chart = state.content.report.chart;
     var chosen = state.report.chart ? state.report.chart.value : chart['default'];
+    /* v1.2: THREE CARDS SIDE BY SIDE, as the real game arranges them
+       (rule 7.3 v1.2, RD-EVIDENCE-real-game-2026-09-09/report-graph.jpg):
+       the picture on top, the name beneath it, the radio button at the
+       bottom of the card. The old simulation stacked them as rows; under
+       Rule Zero the real game wins. The whole card is the label, so a click
+       anywhere on it chooses, and the arrow keys still move between the
+       radios. The row never wraps, even at 900 x 540. */
     var rows = '';
     for (var i = 0; i < chart.options.length; i++) {
       var id = chart.options[i];
-      rows += '<label class="choice' + (chosen === id ? ' is-chosen' : '') + '">' +
+      rows += '<label class="choice graph-card' + (chosen === id ? ' is-chosen' : '') + '">' +
+                '<span class="graph-picture">' + (CHART_ICONS[id] || '') + '</span>' +
+                '<span class="label">' + esc(CHART_NAMES[id] || id) + '</span>' +
                 '<input type="radio" name="chart-choice" value="' + attr(id) + '"' +
                   (chosen === id ? ' checked' : '') + ' data-chart-choice="1"' +
                   ' data-focus-key="chart:' + attr(id) + '">' +
-                (CHART_ICONS[id] || '') +
-                '<span class="label">' + esc(CHART_NAMES[id] || id) + '</span>' +
               '</label>';
     }
     var body = '<p class="q-text">' + textToHtml(chart.prompt) + '</p>' +
-               '<div class="choice-list">' + rows + '</div>';
+               '<div class="graph-cards">' + rows + '</div>';
     return screenHtml({
       body: body,
       scrollKey: 'report',
@@ -1461,7 +1526,7 @@
     for (r = 0; r < values.length; r++) {
       for (c = 0; c < values[r].length; c++) {
         if (values[r][c] !== null && values[r][c] > 0) {
-          slices.push({ label: rowNames[r] + ' — ' + colNames[c], value: values[r][c] });
+          slices.push({ label: rowNames[r] + ', ' + colNames[c], value: values[r][c] });
           total += values[r][c];
         }
       }
@@ -1715,6 +1780,22 @@
   }
 
   function blockHtml(key, title, scoreLine, inner) {
+    /* Demo mode (v1.2, R-D41/R-D43): the block shows its heading and score
+       and nothing else. There are no rows, no explanations and no reasons
+       toggle in the page at all, not merely hidden ones, and the heading
+       cannot be opened. A replayable demo that showed right and wrong per
+       item could be played until the answers fell out of it. */
+    if (isDemo()) {
+      return '<section class="block is-locked" aria-disabled="true">' +
+               '<div class="block-head">' +
+                 '<h2>' + esc(title) + '</h2>' +
+                 '<span class="head-right">' +
+                   '<span class="chev">' + esc(scoreLine) + '</span>' +
+                   '<span class="lock-mark" aria-label="Locked in the demo">' + lockIcon() + '</span>' +
+                 '</span>' +
+               '</div>' +
+             '</section>';
+    }
     var open = !!state.ui.openBlocks[key];
     return '<section class="block">' +
              '<div class="block-head" data-act="toggle-block" data-id="' + attr(key) + '" ' +
@@ -1737,6 +1818,119 @@
                inner +
              '</div>' +
            '</section>';
+  }
+
+  function isDemo() {
+    return state.content.version.results_mode === 'demo';
+  }
+
+  function lockIcon() {
+    return '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">' +
+             '<rect x="3" y="7" width="10" height="7.5" rx="1.6" fill="currentColor"/>' +
+             '<path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="currentColor" ' +
+               'stroke-width="1.6"/>' +
+           '</svg>';
+  }
+
+  /* 1st, 2nd, 3rd, 4th ... 11th, 12th, 13th ... 21st, 22nd. */
+  function ordinal(n) {
+    var tens = n % 100, ones = n % 10;
+    if (tens >= 11 && tens <= 13) return 'th';
+    return ones === 1 ? 'st' : ones === 2 ? 'nd' : ones === 3 ? 'rd' : 'th';
+  }
+
+  /* Which colour family a zone is drawn in, decided by its POSITION in the
+     content's list, never by its label. The first zone (below the pass
+     region) is neutral grey; counting down from the top, the highest zone
+     is green, the one under it light green, and any others amber. With
+     RR6's four zones that gives grey / amber / light green / green, as
+     agreed (R-D43). Never red: a candidate below the line should be
+     motivated, not punished. */
+  function zoneTone(index, count) {
+    if (index === 0) return 'grey';
+    var fromTop = count - 1 - index;
+    return fromTop === 0 ? 'green' : fromTop === 1 ? 'lightgreen' : 'amber';
+  }
+
+  /* "WHERE YOU STAND" (v1.2, R-D41 to R-D43) — the percentile card above the
+     four tiles, when the content carries a benchmark. Every figure on it is
+     worked out in marking.js; this only draws them. The zone labels and the
+     footnote come from the content; the ordinal, the numbers and the fixed
+     phrasing around them are drawn here. */
+  function standingHtml() {
+    var r = state.result;
+    var bench = state.content.version.benchmark;
+    if (!bench || r.percentile === null || r.percentile === undefined) return '';
+    var zones = bench.zones || [];
+    var p = r.percentile;
+    var tone = r.zone ? zoneTone(r.zone.index, zones.length) : 'grey';
+
+    /* the ten cells, each coloured by the zone its decile starts in */
+    var cells = '', nums = '';
+    for (var d = 1; d <= 10; d++) {
+      var z = M.zoneOf((d - 1) * 10, zones);
+      cells += '<span class="band-cell tone-' + (z ? zoneTone(z.index, zones.length) : 'grey') + '"></span>';
+      nums += '<span>' + d + '</span>';
+    }
+
+    /* The marker sits at exactly the percentile along the band. The band is
+       ten equal cells with a 4px gap between them, so the position is the
+       share of the cells' total width plus the gaps already passed. */
+    var cellIndex = Math.min(9, Math.floor(p / 10));
+    var left = 'calc((100% - 36px) * ' + (p / 100) + ' + ' + (cellIndex * 4) + 'px)';
+
+    var legend = '';
+    for (var i = 0; i < zones.length; i++) {
+      var range = i === 0 ? ''
+                : (i === zones.length - 1 ? zones[i].from + '+'
+                                          : zones[i].from + '\u2013' + (zones[i + 1].from - 1)) + ' \u00b7 ';
+      legend += '<span class="legend-item"><i class="tone-' + zoneTone(i, zones.length) + '"></i>' +
+                esc(range) + textToHtml(zones[i].label) + '</span>';
+    }
+
+    return '<section class="standing tone-' + tone + '" aria-label="Where you stand">' +
+      '<div class="standing-main">' +
+        '<div class="standing-left">' +
+          '<div class="standing-figure">' +
+            '<span class="standing-number">' + p + '</span>' +
+            '<span class="standing-ordinal">' + ordinal(p) + '</span>' +
+            '<span class="standing-word">percentile</span>' +
+          '</div>' +
+          '<div class="standing-pill">Decile ' + r.decile + ' \u00b7 top ' + r.topShare + '%' +
+            (r.zone ? ' \u00b7 ' + textToHtml(r.zone.label) : '') + '</div>' +
+          '<p class="standing-sentence">Estimated: your weighted score of <b>' +
+            showScore(r.weighted) + ' / 100</b> beats about <b>' + p + ' in 100</b> candidates ' +
+            'who practised this simulation.</p>' +
+        '</div>' +
+        '<div class="standing-right">' +
+          '<div class="band" role="img" aria-label="Decile band, you are at the ' + p + ordinal(p) +
+            ' percentile">' +
+            '<div class="band-marker" style="left:' + left + '">' +
+              '<span class="marker-label">You \u00b7 ' + p + ordinal(p) + '</span>' +
+              '<span class="marker-arrow"></span>' +
+              '<span class="marker-line"></span>' +
+            '</div>' +
+            '<div class="band-cells">' + cells + '</div>' +
+            '<div class="band-nums">' + nums + '</div>' +
+          '</div>' +
+          '<div class="band-legend">' + legend + '</div>' +
+        '</div>' +
+      '</div>' +
+      (bench.note ? '<p class="standing-note">' + textToHtml(bench.note) + '</p>' : '') +
+    '</section>';
+  }
+
+  /* The demo notice. Its first sentence is set in bold, which is only a
+     matter of drawing: the words are the content's, in one piece. */
+  function demoNoteHtml() {
+    var text = state.content.version.labels.demo_note || '';
+    var cut = text.indexOf('. ');
+    var head = cut === -1 ? text : text.slice(0, cut + 1);
+    var tail = cut === -1 ? '' : text.slice(cut + 1);
+    return '<div class="demo-note" role="note">' +
+             '<span class="demo-lock">' + lockIcon() + '</span>' +
+             '<span><b>' + textToHtml(head) + '</b>' + textToHtml(tail) + '</span>' +
+           '</div>';
   }
 
   function resultsHtml() {
@@ -1768,7 +1962,7 @@
         var label = inv.labels[ids[n]];
         out += '<li>' + textToHtml(label ? label.label : ids[n]) +
                (tag ? ' <span class="earned-tag">' + esc(tag) + '</span>' : '') +
-               (label && label.needed_for ? ' <span style="color:var(--on-light-muted)">— ' +
+               (label && label.needed_for ? ' <span style="color:var(--on-light-muted)">\u00b7 ' +
                  textToHtml(label.needed_for) + '</span>' : '') + '</li>';
       }
       return out + '</ul>';
@@ -1852,7 +2046,7 @@
     for (i = 0; i < r.report.grid.length; i++) {
       var cell = r.report.grid[i];
       repInner += markRow({
-        block: 'report', label: cell.rowLabel + ' — ' + cell.colLabel,
+        block: 'report', label: cell.rowLabel + ', ' + cell.colLabel,
         given: cell.given, expected: cell.expected,
         correct: cell.correct, late: cell.late,
         reason: (i === r.report.grid.length - 1) ? r.report.gridExplanation : ''
@@ -1878,7 +2072,7 @@
           extra += '<div class="option-row ' + (rightHere ? 'is-right' : 'is-wrong') + '">' +
                      '<span class="icon">' + (rightHere ? '✓' : '✗') + '</span>' +
                      '<span>' + textToHtml(d.labels[oid]) +
-                       ' <span style="color:var(--on-light-muted)">— you ' +
+                       ' <span style="color:var(--on-light-muted)">: you ' +
                        (po.chosen ? 'selected' : 'did not select') + ' it; it ' +
                        (po.shouldBe ? 'is' : 'is not') + ' supported</span>' +
                        (d.option_explanations[oid]
@@ -1889,7 +2083,7 @@
         }
         extra = '<div style="margin-top:6px">' + extra + '</div>';
       } else if (c.mechanism === 'dropdowns') {
-        given = d.dropdowns.map(function (x) { return x.givenLabel || x.given || '—'; }).join(', ');
+        given = d.dropdowns.map(function (x) { return x.givenLabel || x.given || 'Not answered'; }).join(', ');
         expected = d.dropdowns.map(function (x) { return x.expectedLabel; }).join(', ');
         givenIsContent = true;
       } else if (c.mechanism === 'number' || c.mechanism === 'numbers') {
@@ -1928,25 +2122,31 @@
           '</div>';
       }
       casesInner += markRow({
-        block: 'cases', label: 'Case ' + c.number + ' — ' + c.question,
+        block: 'cases', label: 'Case ' + c.number + ': ' + c.question,
         given: given, givenIsContent: givenIsContent, expected: expected,
         correct: c.correct, late: c.late, extra: extra, reason: c.explanation
       });
     }
 
-    return '<div class="results"><div class="results-inner">' +
+    /* In demo mode there is no Print and no CSV: the CSV lists every expected
+       answer, and a printed page is the same thing on paper (v1.2). */
+    var demo = isDemo();
+    return '<div class="results' + (demo ? ' is-demo' : '') + '"><div class="results-inner">' +
       '<div class="results-top">' +
         '<h1>Your results</h1>' +
         '<div class="results-actions">' +
-          '<button class="btn-quiet" type="button" data-act="print" ' +
-            'style="color:var(--on-light);border-color:var(--surface-line)">Print</button>' +
-          '<button class="btn-quiet" type="button" data-act="csv" ' +
-            'style="color:var(--on-light);border-color:var(--surface-line)">Download CSV</button>' +
+          (demo ? '' :
+            '<button class="btn-quiet" type="button" data-act="print" ' +
+              'style="color:var(--on-light);border-color:var(--surface-line)">Print</button>' +
+            '<button class="btn-quiet" type="button" data-act="csv" ' +
+              'style="color:var(--on-light);border-color:var(--surface-line)">Download CSV</button>') +
           '<button class="btn" type="button" data-act="restart-now">Restart</button>' +
         '</div>' +
       '</div>' +
+      standingHtml() +
       '<div class="tiles">' + tiles + '</div>' +
       '<p class="summary-line">' + esc(summary) + '</p>' +
+      (demo ? demoNoteHtml() : '') +
       blockHtml('investigation', v.labels.investigation_tab,
                 showScore(inv.score) + ' / ' + showScore(inv.of), invInner) +
       blockHtml('analysis', v.labels.analysis_tab,
@@ -1991,7 +2191,7 @@
       var q = r.analysis.questions[i];
       for (j = 0; j < q.boxes.length; j++) {
         var b = q.boxes[j];
-        rows.push([v.labels.analysis_tab, 'Question ' + q.number + ' — ' + b.label,
+        rows.push([v.labels.analysis_tab, 'Question ' + q.number + ': ' + b.label,
                    b.given, b.expected, b.correct ? 'Yes' : 'No', b.late ? 'Yes' : 'No', '']);
       }
     }
@@ -2008,7 +2208,7 @@
                r.report.chart.correct ? 'Yes' : 'No', r.report.chart.late ? 'Yes' : 'No', '']);
     for (i = 0; i < r.report.grid.length; i++) {
       var cell = r.report.grid[i];
-      rows.push([v.labels.report_tab, cell.rowLabel + ' — ' + cell.colLabel,
+      rows.push([v.labels.report_tab, cell.rowLabel + ', ' + cell.colLabel,
                  cell.given, cell.expected, cell.correct ? 'Yes' : 'No',
                  cell.late ? 'Yes' : 'No', '']);
     }
@@ -2040,6 +2240,11 @@
                  c.correct ? 'Yes' : 'No', c.late ? 'Yes' : 'No', '']);
     }
     rows.push(['Total', 'Score', showScore(r.total.score), showScore(r.total.of), '', '', '']);
+    /* v1.2: the weighted score and the percentile, when there is a benchmark. */
+    if (r.weighted !== null && r.weighted !== undefined) {
+      rows.push(['Total', 'Weighted score', showScore(r.weighted), '100', '', '', '']);
+      rows.push(['Total', 'Percentile', String(r.percentile), '', '', '', '']);
+    }
 
     return rows.map(function (row) {
       return row.map(function (cellText) {
@@ -2049,12 +2254,21 @@
     }).join('\r\n');
   }
 
+  function csvFileName(title) {
+    var slug = String(title || 'simulation').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return (slug || 'simulation') + '-results.csv';
+  }
+
   function downloadCsv() {
     var blob = new Blob(['﻿' + csvText()], { type: 'text/csv;charset=utf-8;' });
     var url = URL.createObjectURL(blob);
     var link = document.createElement('a');
     link.href = url;
-    link.download = state.content.version.id + '-results.csv';
+    /* The file is named after the content's title, never its id: the version
+       number is never shown to a candidate (R-D43, Q21). "Redrock Study
+       Simulation" becomes redrock-study-simulation-results.csv. */
+    link.download = csvFileName(state.content.version.title);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -2076,6 +2290,10 @@
     rememberScroll();
 
     document.body.classList.toggle('scrolls', state.phase === 'results');
+    /* While the clock is paused the header is lifted above the popup's
+       dimmed backdrop, so the clock and "Timer paused" stay readable, as the
+       real game keeps its clock visible over its Training screens. */
+    document.body.classList.toggle('clock-paused', !!state.timer.paused);
 
     var html;
     if (state.phase === 'login') {
@@ -2258,7 +2476,20 @@
       if (questions[i].number === state.analysis.current) index = i;
     }
     /* Every filled box is copied into the Research Journal as the candidate
-       moves on, which is what the current simulation does (R-D16). */
+       moves on, which is what the current simulation does (R-D16).
+
+       THE ANSWERS GO AT THE TOP (rule 5.4 v1.2). They form one block above
+       everything the candidate collected, in question order and box order:
+       each move inserts its boxes straight after the last "Answer #" entry
+       already there, or at the very top when there is none. The old
+       simulation inserted at the top and the real game's journal reads
+       Answer #1, #2, #3 and then the Objective. An answer entry is known by
+       its id ("ans:…"), not by its title, because the candidate may have
+       renamed it. */
+    var insertAt = 0;
+    for (i = 0; i < state.journal.length; i++) {
+      if (String(state.journal[i].id).indexOf('ans:') === 0) insertAt = i + 1;
+    }
     var boxes = questions[index].boxes;
     for (i = 0; i < boxes.length; i++) {
       var leaf = state.analysis.answers[boxes[i].id];
@@ -2270,16 +2501,19 @@
            could not tell which answer was which. (No scenario word appears in
            this file — the labels come from the content.) */
         var answerTitle = 'Answer #' + questions[index].number + ' ' + boxes[i].label;
-        addToJournal({
+        if (insertIntoJournal({
           id: 'ans:' + boxes[i].id,
           label: answerTitle,
           title: answerTitle,
           text: String(leaf.value),
           expanded: false,
           marked: false
-        });
+        }, insertAt)) {
+          insertAt++;
+        }
       }
     }
+    clearCalcLine();
     if (index + 1 < questions.length) {
       state.analysis.current = questions[index + 1].number;
       state.phase = 'analysis';
@@ -2292,6 +2526,8 @@
   }
 
   function goCases() {
+    /* The Analysis history does not carry into the Cases (rule 6.6 v1.2). */
+    clearCalcHistory();
     state.phase = 'cases';
     state.reached.cases = true;
     if (!state.cases.tutorialShown) {
@@ -2304,6 +2540,9 @@
 
   function nextCase() {
     state.cases.done[state.cases.current] = true;
+    /* Finishing a case discards its calculator history and its line; the next
+       case with a calculator starts empty (rules 6.6 and 6.7 v1.2). */
+    clearCalcHistory();
     var list = state.content.cases.cases;
     if (state.cases.current < list.length) {
       state.cases.current++;
@@ -2333,6 +2572,7 @@
              this is the journal that gets marked. Anything the candidate does
              to the journal during the Report cannot change the score. */
           state.investigation.finalIds = journalItemIds();
+          clearCalcLine();
           state.phase = 'report_written';
           state.reached.report = true;
           render();
@@ -2554,8 +2794,8 @@
 
     'dismiss-warning': function () { dismissWarning(); },
 
-    'print': function () { window.print(); },
-    'csv': function () { downloadCsv(); }
+    'print': function () { if (!isDemo()) window.print(); },
+    'csv': function () { if (!isDemo()) downloadCsv(); }
   };
 
   document.addEventListener('click', function (event) {

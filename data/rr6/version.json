@@ -1,7 +1,7 @@
 {
   "id": "rr6",
-  "title": "Redrock Study — Simulation 6",
-  "scenario": "Aldarin Island — Dashed Coyotes",
+  "title": "Redrock Study Simulation",
+  "scenario": "Aldarin Island: Dashed Coyotes",
   "time_limit_minutes": 35,
   "case_count": 6,
   "return_visit_weight": 0.5,
@@ -21,7 +21,9 @@
     "graph_tab": "Graph",
     "visual_tab": "Visual",
     "cases_menu": "Case Questions",
-    "journal_mark_hint": "Mark (!) for important items"
+    "journal_mark_hint": "Mark (!) for important items",
+    "timer_paused": "Timer paused",
+    "demo_note": "This is the free demo, which shows your score and percentile only. Our full simulations come with every answer explained in detail."
   },
   "buttons": {
     "complete_investigation": "Complete Investigation",
@@ -41,7 +43,7 @@
       "go": "Move to Analysis"
     },
     "analysis_tutorial": {
-      "title": "Tutorial",
+      "title": "Moving to the Analysis",
       "text": "Please get ready for the next stage of the assessment. You will have to answer a few questions related to your research.",
       "go": "Continue"
     },
@@ -64,7 +66,7 @@
       "go": "Move to next section"
     },
     "cases_tutorial": {
-      "title": "Tutorial",
+      "title": "Moving to the Cases",
       "text": "Please get ready for the next stage of the assessment. You will have to answer a few cases to complete your research.",
       "go": "Continue"
     },
@@ -84,5 +86,99 @@
   "warnings": {
     "title": "{n} Minute Warning",
     "text": "{n} minutes remain to finish your work for both the study and the cases"
+  },
+  "results_mode": "full",
+  "benchmark": {
+    "note": "This percentile is our own estimate for this simulation, not a McKinsey figure. McKinsey does not publish its exact scoring, so we weight each section equally for the purpose of scoring. Candidates who pass typically score in the top quartile, but we recommend aiming for the 90th and above.",
+    "phase_weights": {
+      "investigation": 25,
+      "analysis": 25,
+      "report": 25,
+      "cases": 25
+    },
+    "zones": [
+      {
+        "from": 0,
+        "label": "Below 70th"
+      },
+      {
+        "from": 70,
+        "label": "Borderline"
+      },
+      {
+        "from": 80,
+        "label": "Likely pass"
+      },
+      {
+        "from": 90,
+        "label": "Comfortable"
+      }
+    ],
+    "percentiles": [
+      [
+        0,
+        1
+      ],
+      [
+        20,
+        5
+      ],
+      [
+        35,
+        12
+      ],
+      [
+        45,
+        20
+      ],
+      [
+        55,
+        30
+      ],
+      [
+        62,
+        40
+      ],
+      [
+        68,
+        50
+      ],
+      [
+        74,
+        60
+      ],
+      [
+        79,
+        68
+      ],
+      [
+        84,
+        75
+      ],
+      [
+        88,
+        80
+      ],
+      [
+        91,
+        85
+      ],
+      [
+        94,
+        90
+      ],
+      [
+        96,
+        94
+      ],
+      [
+        98,
+        97
+      ],
+      [
+        100,
+        99
+      ]
+    ]
   }
 }

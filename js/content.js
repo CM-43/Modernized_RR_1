@@ -48,7 +48,7 @@
           try {
             return JSON.parse(text);
           } catch (e) {
-            throw new Error(name + '.json is not valid JSON — ' + e.message +
+            throw new Error(name + '.json is not valid JSON (' + e.message + ')' +
                             '. A missing comma or a stray quote is the usual cause.');
           }
         });

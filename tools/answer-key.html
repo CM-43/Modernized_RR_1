@@ -6,48 +6,89 @@
 <title>Answer key</title>
 <link rel="stylesheet" href="../css/shared-styles.css">
 <style>
-  /* This page is a printed document, not part of the simulation. */
+  /* An internal page for WK and Francesco: checking a candidate's work, or
+     checking a content file. Nothing in the simulation links to it and a
+     candidate never sees it. v1.2 (R-D40 item 9): compact tables that can be
+     scanned, instead of one card per item. */
   body { overflow: auto; background: var(--surface); color: var(--on-light); }
-  .wrap { max-width: 1000px; margin: 0 auto; padding: 26px clamp(14px, 3vw, 40px) 80px; }
-  h1 { font-size: clamp(22px, 2.1vw, 30px); }
-  .sub { color: var(--on-light-muted); margin: 4px 0 var(--space-6); font-size: max(14px, 0.92em); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 26px clamp(14px, 3vw, 40px) 80px; }
+  .eyebrow { font-size: max(12px, 0.78em); font-weight: 700; letter-spacing: 0.08em;
+             text-transform: uppercase; color: var(--on-light-muted); }
+  h1 { font-size: clamp(22px, 2.1vw, 30px); margin-top: 2px; }
+  .sub { color: var(--on-light-muted); margin: 4px 0 var(--space-4); font-size: max(14px, 0.92em);
+         max-width: 62em; line-height: 1.5; }
+  .warn { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; border-radius: var(--radius-small);
+          padding: 10px 14px; margin-bottom: var(--space-4); font-size: max(14px, 0.9em); }
   h2 {
     font-size: max(18px, 1.2em);
-    margin: var(--space-6) 0 var(--space-3);
+    margin: 34px 0 var(--space-3);
     padding-bottom: 6px;
     border-bottom: 2px solid var(--surface-line);
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
   }
-  h3 { font-size: max(15px, 1em); margin: var(--space-5) 0 var(--space-2); }
-  h4 { font-size: max(13px, 0.88em); margin: var(--space-4) 0 var(--space-2);
-       color: var(--on-light-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-  .item {
+  h2 .count { font-size: max(13px, 0.72em); font-weight: 500; color: var(--on-light-muted); }
+  h3 { font-size: max(14px, 0.95em); margin: var(--space-5) 0 var(--space-2); }
+  .totals { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-3);
+            margin: var(--space-4) 0 var(--space-3); }
+  .totals div { background: var(--surface-plain); border: 1px solid var(--surface-line);
+                border-radius: var(--radius-small); padding: 10px var(--space-4);
+                font-size: max(13px, 0.86em); color: var(--on-light-muted); }
+  .totals b { display: block; font-size: max(20px, 1.4em); color: var(--on-light); line-height: 1.2; }
+  .rule { background: var(--surface-plain); border: 1px solid var(--surface-line); border-left: 3px solid var(--warning);
+          border-radius: var(--radius-small); padding: 9px 14px; font-size: max(13px, 0.88em); line-height: 1.55; }
+  .para { font-size: max(13px, 0.88em); line-height: 1.55; color: var(--on-light-muted); margin: var(--space-2) 0 0; }
+  code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em;
+         background: var(--surface-sunken); padding: 1px 5px; border-radius: 4px; }
+
+  table.key {
+    width: 100%;
+    border-collapse: collapse;
     background: var(--surface-plain);
     border: 1px solid var(--surface-line);
     border-radius: var(--radius-small);
-    padding: 9px var(--space-4);
-    margin-bottom: 6px;
+    font-size: max(13px, 0.86em);
+    margin-bottom: var(--space-2);
   }
-  .item .n { color: var(--on-light-muted); font-size: max(12px, 0.8em); }
-  .item .a { font-weight: 700; }
-  .item .why { color: var(--on-light-muted); font-size: max(12px, 0.84em); margin-top: 4px;
-               line-height: 1.55; }
-  .q { background: var(--surface-plain); border: 1px solid var(--surface-line);
-       border-radius: var(--radius); padding: var(--space-4) var(--space-5);
-       margin-bottom: var(--space-4); }
-  .q .qtext { font-size: max(14px, 0.92em); margin-bottom: var(--space-3); }
-  .totals { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-5); }
-  .totals div { background: var(--surface-plain); border: 1px solid var(--surface-line);
-                border-radius: var(--radius-small); padding: 8px var(--space-4);
-                font-size: max(13px, 0.88em); }
-  .totals b { font-size: max(16px, 1.1em); }
-  code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em;
-         background: var(--surface-sunken); padding: 1px 5px; border-radius: 4px; }
-  .tpl { background: var(--surface-sunken); border-radius: var(--radius-small);
+  table.key th, table.key td { padding: 6px 10px; text-align: left; vertical-align: top;
+                               border-bottom: 1px solid #e8ebf1; line-height: 1.45; }
+  table.key thead th { background: var(--surface-sunken); font-size: max(12px, 0.78em);
+                       text-transform: uppercase; letter-spacing: 0.04em; color: var(--on-light-muted);
+                       border-bottom: 1px solid var(--surface-line); white-space: nowrap; }
+  table.key td.n { color: var(--on-light-muted); width: 2.6em; text-align: right; white-space: nowrap; }
+  table.key td.ans, table.key .ans { font-weight: 700; }
+  table.cases td:nth-child(2) { width: 40%; }
+  table.cases td:nth-child(3) { width: 9%; white-space: nowrap; }
+  table.points td { white-space: nowrap; }
+  table.points td.gap { border-left: 1px solid var(--surface-line); }
+  table.key td.num { white-space: nowrap; }
+  table.key .muted { color: var(--on-light-muted); }
+  table.key tr.q-row td { background: #f6f8fc; border-top: 1px solid var(--surface-line); }
+  table.key tr.q-row b { margin-right: 6px; }
+  table.key tr.why td { color: var(--on-light-muted); font-size: 0.95em; padding-top: 0; }
+  table.key tr.has-why td { border-bottom: none; }
+  table.key tbody:last-child tr:last-child td { border-bottom: none; }
+  .tpl { background: var(--surface-plain); border: 1px solid var(--surface-line); border-radius: var(--radius-small);
          padding: var(--space-3) var(--space-4); font-size: max(13px, 0.9em);
-         line-height: 1.9; white-space: pre-wrap; margin-bottom: var(--space-3); }
+         line-height: 1.8; margin-bottom: var(--space-3); }
+  .tpl mark { background: var(--accent-soft); color: var(--on-light); font-weight: 700;
+              padding: 0 4px; border-radius: 4px; }
+  .side-by-side { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                  gap: var(--space-4); align-items: start; }
+  @media (max-width: 800px) {
+    .side-by-side { grid-template-columns: minmax(0, 1fr); }
+    .totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  /* Printing: rows never split across pages, and a table's headings repeat
+     at the top of each page it continues on. */
+  @page { margin: 14mm 12mm; }
   @media print {
     .wrap { max-width: none; padding: 0; }
-    .q, .item { break-inside: avoid; }
+    h2 { break-after: avoid; }
+    h3 { break-after: avoid; }
+    thead { display: table-header-group; }
+    tr, tbody.keep { break-inside: avoid; }
+    .totals div, .rule { break-inside: avoid; }
   }
 </style>
 </head>
@@ -68,145 +109,238 @@ function esc(t) {
    first, so the only tags that can appear are the two put here. */
 function nl(t) {
   return esc(t)
+    .replace(/\{\{([^}]+)\}\}/g, '$1')        /* a bare draggable number, {{7}}, prints as 7 */
     .replace(/\^\{([^}]*)\}/g, '<sup>$1</sup>')
     .replace(/\n/g, '<br>');
 }
 
-function accepts(decimals, anyOf) {
-  var bits = [];
-  if (decimals !== null && decimals !== undefined) {
-    bits.push('compared at ' + decimals + (decimals === 1 ? ' decimal place' : ' decimal places'));
-  }
-  if (anyOf && anyOf.length) bits.push('also accepts ' + anyOf.join(', '));
-  return bits.length ? ' <span class="n">(' + esc(bits.join('; ')) + ')</span>' : '';
+/* What a number box accepts, in words. The rule (marking.js markNumber): an
+   answer is right if it rounds to the key's figure at the key's number of
+   decimal places, so 0.4 at 1 decimal place accepts 0.35 up to, but not
+   including, 0.45. Extra accepted figures (any_of) get their own range. */
+function band(value, d) {
+  var half = 0.5 / Math.pow(10, d);
+  return (Number(value) - half).toFixed(d + 1) + ' to under ' + (Number(value) + half).toFixed(d + 1);
+}
+function accepted(answer, d, anyOf) {
+  if (d === null || d === undefined) return '';
+  var out = band(answer, d);
+  (anyOf || []).forEach(function (x) { out += '; or ' + band(x, d) + ' (' + x + ' also accepted)'; });
+  return out + ' <span class="muted">· ' + d + (d === 1 ? ' decimal place' : ' decimal places') + '</span>';
+}
+function table(head, body, cls) {
+  return '<table class="key' + (cls ? ' ' + cls : '') + '"><thead><tr>' +
+         head.map(function (h) { return '<th>' + h + '</th>'; }).join('') +
+         '</tr></thead>' + body + '</table>';
 }
 
 function draw(key) {
-  var html = '<h1>' + esc(key.title) + ' — answer key</h1>' +
-             '<p class="sub">' + esc(key.scenario) +
-             '. Printed from the same content files the simulation itself reads, so it ' +
-             'cannot drift out of step with what the candidate is marked against.</p>';
+  var i, j, html = '';
+  html += '<div class="eyebrow">Answer key · internal</div>' +
+          '<h1>' + esc(key.title) + '</h1>' +
+          '<p class="sub">' + esc(key.scenario) + '. Printed from the same content files the ' +
+          'simulation reads, so it cannot drift out of step with what a candidate is marked ' +
+          'against. For WK and Francesco; nothing in the simulation links here.</p>';
+  if (key.resultsMode === 'demo') {
+    html += '<div class="warn"><b>This version is a demo.</b> Do not upload this page with it: ' +
+            'it prints every answer.</div>';
+  }
 
   html += '<div class="totals">' +
-    '<div>Investigation <b>' + key.totals.investigation + '</b> items</div>' +
-    '<div>Analysis <b>' + key.totals.analysis + '</b> boxes</div>' +
-    '<div>Report <b>' + key.totals.report + '</b> parts</div>' +
-    '<div>Cases <b>' + key.totals.cases + '</b></div>' +
-    '<div>Total <b>' + key.totals.total + '</b></div>' +
+    '<div><b>' + key.totals.investigation + '</b>Investigation items</div>' +
+    '<div><b>' + key.totals.analysis + '</b>Analysis boxes</div>' +
+    '<div><b>' + key.totals.report + '</b>Report parts</div>' +
+    '<div><b>' + key.totals.cases + '</b>Cases</div>' +
+    '<div><b>' + key.totals.total + '</b>Total marks</div>' +
   '</div>';
 
-  /* --- Investigation, grouped by the section each item appears in ------- */
-  html += '<h2>Investigation — the ' + key.totals.investigation +
-          ' pieces of information to collect</h2>';
   var w = key.returnVisitWeight;
   var earned = w === 1 ? 'a full mark' : w === 0 ? 'nothing'
              : w === 0.5 ? 'half a mark' : String(w) + ' of a mark';
-  html += '<p class="sub" style="margin-bottom:var(--space-4)">' +
-          'Each of these earns a full mark if it was collected before the candidate first ' +
-          'left the Investigation. One fetched on a return visit from the Analysis earns ' +
-          esc(earned) + ' (set by <code>return_visit_weight</code> in ' +
+  html += '<p class="rule">Each Investigation item earns a full mark if it was collected before the ' +
+          'candidate first left the Investigation. One fetched on a return visit from the Analysis ' +
+          'earns ' + esc(earned) + ' (set by <code>return_visit_weight</code> in ' +
           '<code>version.json</code>, currently <code>' + esc(String(w)) + '</code>). ' +
           'One never collected earns nothing.</p>';
-  var lastSection = null, n = 0;
-  for (var i = 0; i < key.investigation.length; i++) {
+
+  /* --- Investigation: one table per section ---------------------------- */
+  html += '<h2>Investigation <span class="count">' + key.totals.investigation +
+          ' pieces of information to collect</span></h2>';
+  var groups = [], current = null;
+  for (i = 0; i < key.investigation.length; i++) {
     var item = key.investigation[i];
-    if (item.section !== lastSection) {
-      html += '<h4>' + nl(item.section) + '</h4>';
-      lastSection = item.section;
+    if (!current || current.section !== item.section) {
+      current = { section: item.section, items: [] };
+      groups.push(current);
     }
-    n++;
-    html += '<div class="item"><span class="n">' + n + '.</span> ' +
-              '<span class="a">' + nl(item.text) + '</span> ' +
-              '<span class="n">(' + nl(item.label) + ')</span>' +
-              (item.needed_for ? '<div class="why">Needed for: ' + nl(item.needed_for) + '</div>' : '') +
-            '</div>';
+    current.items.push(item);
   }
+  var n = 0;
+  groups.forEach(function (g) {
+    var rows = '<tbody>';
+    g.items.forEach(function (it) {
+      n++;
+      rows += '<tr><td class="n">' + n + '</td><td class="ans">' + nl(it.text) + '</td>' +
+              '<td>' + nl(it.label) + '</td><td class="muted">' + nl(it.needed_for) + '</td></tr>';
+    });
+    html += '<h3>' + nl(g.section) + '</h3>' +
+            table(['#', 'Value', 'Label', 'Needed for'], rows + '</tbody>');
+  });
   if (key.investigationExplanation) {
-    html += '<div class="item"><div class="why">' + nl(key.investigationExplanation) + '</div></div>';
+    html += '<p class="para">' + nl(key.investigationExplanation) + '</p>';
   }
 
   /* --- Analysis --------------------------------------------------------- */
-  html += '<h2>Analysis</h2>';
+  html += '<h2>Analysis <span class="count">' + key.totals.analysis + ' answer boxes</span></h2>';
+  var aRows = '';
   for (i = 0; i < key.analysis.length; i++) {
     var q = key.analysis[i];
-    html += '<div class="q"><h3>Question ' + q.number + '</h3>' +
-            '<div class="qtext">' + nl(q.text) + '</div>';
-    for (var b = 0; b < q.boxes.length; b++) {
-      var box = q.boxes[b];
-      html += '<div class="item">' + nl(box.label) + ' = <span class="a">' + nl(box.answer) +
-                (box.unit ? nl(box.unit) : '') + '</span>' +
-                accepts(box.decimals, box.any_of) +
-                (box.explanation ? '<div class="why">' + nl(box.explanation) + '</div>' : '') +
-              '</div>';
+    aRows += '<tbody class="keep"><tr class="q-row"><td colspan="4"><b>Question ' + q.number +
+             '</b>' + nl(q.text) + '</td></tr></tbody>';
+    for (j = 0; j < q.boxes.length; j++) {
+      var box = q.boxes[j];
+      aRows += '<tbody class="keep"><tr' + (box.explanation ? ' class="has-why"' : '') + '>' +
+                 '<td class="n">Q' + q.number + '</td>' +
+                 '<td>' + nl(box.label) + '</td>' +
+                 '<td class="ans num">' + nl(box.answer) + (box.unit ? nl(box.unit) : '') + '</td>' +
+                 '<td class="num">' + accepted(box.answer, box.decimals, box.any_of) + '</td>' +
+               '</tr>' +
+               (box.explanation ? '<tr class="why"><td></td><td colspan="3">' + nl(box.explanation) +
+                 '</td></tr>' : '') +
+               '</tbody>';
     }
-    html += '</div>';
   }
+  html += table(['Q', 'Box', 'Answer', 'Accepted'], aRows);
 
   /* --- Report ----------------------------------------------------------- */
-  html += '<h2>Report</h2>';
-  var filled = key.report.template;
+  html += '<h2>Report <span class="count">' + key.totals.report + ' parts</span></h2>';
+  var filled = esc(key.report.template);
   for (i = 0; i < key.report.written.length; i++) {
-    var w = key.report.written[i];
-    filled = filled.replace('[[' + w.id + ']]', '⟨' + w.answerLabel + '⟩');
+    var wb = key.report.written[i];
+    filled = filled.replace('[[' + wb.id + ']]', '<mark>' + esc(wb.id.toUpperCase()) + ': ' +
+                            esc(wb.answerLabel) + '</mark>');
   }
-  html += '<div class="q"><h3>Part 1 — written</h3>' +
-          '<div class="tpl">' + nl(filled) + '</div>';
+  html += '<h3>Written</h3><div class="tpl">' +
+          filled.replace(/\^\{([^}]*)\}/g, '<sup>$1</sup>').replace(/\n/g, '<br>') + '</div>';
+  var wRows = '';
   for (i = 0; i < key.report.written.length; i++) {
-    w = key.report.written[i];
-    html += '<div class="item"><span class="n">blank ' + esc(w.id.toUpperCase()) + '</span> = ' +
-              '<span class="a">' + nl(w.answerLabel) + '</span>' +
-              accepts(w.decimals, w.any_of) +
-              (w.explanation ? '<div class="why">' + nl(w.explanation) + '</div>' : '') +
-            '</div>';
+    wb = key.report.written[i];
+    wRows += '<tbody class="keep"><tr' + (wb.explanation ? ' class="has-why"' : '') + '>' +
+               '<td class="n">' + esc(wb.id.toUpperCase()) + '</td>' +
+               '<td class="ans num">' + nl(wb.answerLabel) + '</td>' +
+               '<td class="muted">' + (wb.kind === 'dropdown' ? 'choice' : 'number') + '</td>' +
+               '<td class="num">' + (wb.kind === 'number' ? accepted(wb.answer, wb.decimals, wb.any_of) :
+                                     '<span class="muted">that option only</span>') + '</td>' +
+             '</tr>' +
+             (wb.explanation ? '<tr class="why"><td></td><td colspan="3">' + nl(wb.explanation) +
+               '</td></tr>' : '') +
+             '</tbody>';
   }
-  html += '</div>';
+  html += table(['Blank', 'Answer', 'Kind', 'Accepted'], wRows);
 
-  html += '<div class="q"><h3>Part 2 — the chart to choose</h3>' +
-          '<div class="qtext">' + nl(key.report.chart.prompt) + '</div>' +
-          '<div class="item"><span class="a">' + nl(key.report.chart.answer.toUpperCase()) + '</span>' +
-            (key.report.chart.explanation
-              ? '<div class="why">' + nl(key.report.chart.explanation) + '</div>' : '') +
-          '</div></div>';
+  html += '<h3>Graph</h3>' +
+          table(['Prompt', 'Answer', 'Why'],
+                '<tbody class="keep"><tr><td>' + nl(key.report.chart.prompt) + '</td>' +
+                '<td class="ans num">' + nl(key.report.chart.answer.toUpperCase()) + '</td>' +
+                '<td class="muted">' + nl(key.report.chart.explanation) + '</td></tr></tbody>');
 
-  html += '<div class="q"><h3>Part 3 — the figures</h3>' +
-          '<div class="qtext">' + nl(key.report.grid.prompt) + '</div>';
-  for (i = 0; i < key.report.grid.cells.length; i++) {
-    var cell = key.report.grid.cells[i];
-    html += '<div class="item">' + nl(cell.row) + ' — ' + nl(cell.col) + ' = ' +
-              '<span class="a">' + nl(cell.answer) + '</span>' +
-              (cell.fixed ? ' <span class="n">(pre-filled, not marked)</span>' : '') +
-              accepts(null, cell.any_of) +
-            '</div>';
-  }
-  if (key.report.grid.explanation) {
-    html += '<div class="item"><div class="why">' + nl(key.report.grid.explanation) + '</div></div>';
-  }
-  html += '</div>';
+  html += '<h3>Visual: the figures</h3><p class="para" style="margin:0 0 8px">' +
+          nl(key.report.grid.prompt) + '</p>';
+  var cols = [], rowsOrder = [], byRow = {};
+  key.report.grid.cells.forEach(function (c) {
+    if (cols.indexOf(c.col) === -1) cols.push(c.col);
+    if (!byRow[c.row]) { byRow[c.row] = {}; rowsOrder.push(c.row); }
+    byRow[c.row][c.col] = c;
+  });
+  var gRows = '<tbody>';
+  rowsOrder.forEach(function (rowName) {
+    gRows += '<tr><td>' + nl(rowName) + '</td>';
+    cols.forEach(function (colName) {
+      var c = byRow[rowName][colName];
+      gRows += '<td><span class="ans">' + nl(c.answer) + '</span>' +
+               (c.fixed ? ' <span class="muted">(pre-filled, not marked)</span>'
+                        : '<br><span class="muted">' + accepted(c.answer, c.decimals, c.any_of) + '</span>') +
+               '</td>';
+    });
+    gRows += '</tr>';
+  });
+  html += table([''].concat(cols.map(nl)), gRows + '</tbody>');
+  if (key.report.grid.explanation) html += '<p class="para">' + nl(key.report.grid.explanation) + '</p>';
 
   /* --- Cases ------------------------------------------------------------ */
-  html += '<h2>Cases</h2>';
+  html += '<h2>Cases <span class="count">' + key.totals.cases + ' cases, one mark each</span></h2>';
+  var cRows = '';
   for (i = 0; i < key.cases.length; i++) {
     var c = key.cases[i];
-    html += '<div class="q"><h3>Case ' + c.number + '</h3>' +
-            '<div class="qtext">' + nl(c.question) + '</div>';
-    if (c.answer !== null) {
-      html += '<div class="item"><span class="a">' + nl(c.answer) + '</span></div>';
+    var answer = '';
+    if (c.answer !== null) answer = '<span class="ans">' + nl(c.answer) + '</span>';
+    if (c.parts.length) {
+      answer += c.parts.map(function (p) {
+        var joiner = /[=:]\s*$/.test(p.label) ? ' ' : ': ';
+        var bits = nl(p.label) + joiner + '<span class="ans">' + nl(p.answer) + '</span>';
+        if (p.decimals !== undefined && p.decimals !== null) {
+          bits += ' <span class="muted">(' + accepted(p.answer, p.decimals, p.any_of)
+                    .replace(/ <span class="muted">· /, ', ').replace(/<\/span>$/, '') + ')</span>';
+        }
+        return bits;
+      }).join('<br>');
     }
-    for (var p = 0; p < c.parts.length; p++) {
-      html += '<div class="item">' + nl(c.parts[p].label) + ' = ' +
-                '<span class="a">' + nl(c.parts[p].answer) + '</span>' +
-                (c.parts[p].explanation
-                  ? '<div class="why">' + nl(c.parts[p].explanation) + '</div>' : '') +
-              '</div>';
+    cRows += '<tbody class="keep"><tr' + (c.explanation ? ' class="has-why"' : '') + '>' +
+               '<td class="n">' + c.number + '</td>' +
+               '<td>' + nl(c.question) + '</td>' +
+               '<td class="muted">' + esc(c.mechanism.replace('_', ' ')) + '</td>' +
+               '<td>' + answer + '</td>' +
+             '</tr>' +
+             (c.explanation ? '<tr class="why"><td></td><td colspan="3">' + nl(c.explanation) +
+               '</td></tr>' : '') +
+             '</tbody>';
+  }
+  html += table(['Case', 'Question', 'Kind', 'Answer'], cRows, 'cases');
+
+  /* --- The percentile mapping (v1.2) ------------------------------------ */
+  var b = key.benchmark;
+  html += '<h2>Where you stand <span class="count">how the results page estimates the percentile</span></h2>';
+  if (!b) {
+    html += '<p class="para">This version has no <code>benchmark</code> block, so the results page ' +
+            'shows no percentile.</p>';
+  } else {
+    html += '<p class="rule">Weighted score out of 100 = each phase\'s score divided by its best ' +
+            'possible, times its weight, added up. The percentile is read off the table in a straight ' +
+            'line between its points, rounded to a whole number and kept between 1 and 99. Results ' +
+            'mode: <code>' + esc(key.resultsMode) + '</code>.</p>';
+    var wt = '<tbody>' + ['investigation', 'analysis', 'report', 'cases'].map(function (k) {
+      return '<tr><td>' + k.charAt(0).toUpperCase() + k.slice(1) + '</td><td class="ans num">' +
+             esc(b.phase_weights[k]) + '</td></tr>';
+    }).join('') + '</tbody>';
+    var zt = '<tbody>' + b.zones.map(function (z, zi) {
+      var to = zi < b.zones.length - 1 ? ' to ' + (b.zones[zi + 1].from - 1) : ' and above';
+      return '<tr><td class="num">' + esc(z.from) + to + '</td><td class="ans">' + nl(z.label) + '</td></tr>';
+    }).join('') + '</tbody>';
+    /* the table's points, four pairs to a row so sixteen points stay compact */
+    var pt = '<tbody>', per = 4;
+    for (var pi = 0; pi < b.percentiles.length; pi += per) {
+      pt += '<tr>';
+      for (var pj = pi; pj < pi + per; pj++) {
+        var pp = b.percentiles[pj];
+        pt += pp ? '<td class="num' + (pj > pi ? ' gap' : '') + '">' + esc(pp[0]) + '</td>' +
+                   '<td class="ans num">' + esc(pp[1]) + '</td>'
+                 : '<td' + (pj > pi ? ' class="gap"' : '') + '></td><td></td>';
+      }
+      pt += '</tr>';
     }
-    if (c.explanation) {
-      html += '<div class="item"><div class="why">' + nl(c.explanation) + '</div></div>';
-    }
-    html += '</div>';
+    pt += '</tbody>';
+    html += '<div class="side-by-side">' +
+              '<div><h3>Phase weights</h3>' + table(['Phase', 'Weight'], wt) + '</div>' +
+              '<div><h3>Zones</h3>' + table(['Percentile', 'Zone'], zt) + '</div>' +
+            '</div>' +
+            '<h3>Table: weighted score, then the percentile it reads as</h3>' +
+            table(['Score', 'Percentile', 'Score', 'Percentile', 'Score', 'Percentile', 'Score', 'Percentile'],
+                  pt, 'points');
+    if (b.note) html += '<p class="para"><b>Footnote shown to the candidate:</b> ' + nl(b.note) + '</p>';
   }
 
   document.getElementById('out').innerHTML = html;
-  document.title = key.title + ' — answer key';
+  document.title = 'Answer key: ' + key.title;
 }
 
 var id = CONTENT.versionFromUrl(window.location.search, 'rr6');
